@@ -34,7 +34,7 @@ Testcontainers создаёт отдельную PostgreSQL для тестов.
 .\gradlew.bat bootJar
 ```
 
-Исполняемый файл — `build/libs/task-tracker-spring-0.1.0.jar`. Порядок его запуска приведён в [инструкции запуска](RUNNING.md#запуск-jar).
+Исполняемый файл — `build/libs/taskflow-0.1.0.jar`. Порядок его запуска приведён в [инструкции запуска](RUNNING.md#запуск-jar).
 
 ## Генерация Javadoc
 

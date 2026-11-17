@@ -80,7 +80,7 @@ DB_MIGRATION_PASSWORD=replace-with-migration-password
 .\gradlew.bat bootRun
 ```
 
-Flyway применит миграции автоматически. После сообщения `Started TaskTrackerSpringApplication` откройте [http://localhost:8080](http://localhost:8080). Остановка сервера — `Ctrl+C`.
+Flyway применит миграции автоматически. После сообщения `Started TaskFlowApplication` откройте [http://localhost:8080](http://localhost:8080). Остановка сервера — `Ctrl+C`.
 
 В стартовой конфигурации используется стандартный вход Spring Security: логин `user`, пароль выводится в консоль после `Using generated security password`. Учётные записи PostgreSQL используются для подключения к БД.
 
@@ -96,7 +96,7 @@ Flyway применит миграции автоматически. После 
 | Сборка JAR | `./gradlew bootJar` | `.\gradlew.bat bootJar` |
 | Генерация Javadoc | `./gradlew javadoc` | `.\gradlew.bat javadoc` |
 
-Исполняемый файл — `build/libs/task-tracker-spring-0.1.0.jar`. Отчёт тестов — `build/reports/tests/test/index.html`, Javadoc — `build/docs/javadoc/index.html`.
+Исполняемый файл — `build/libs/taskflow-0.1.0.jar`. Отчёт тестов — `build/reports/tests/test/index.html`, Javadoc — `build/docs/javadoc/index.html`.
 
 Пояснения к проверкам, сборке и результатам приведены в [инструкции по тестированию и сборке](TESTING.md).
 

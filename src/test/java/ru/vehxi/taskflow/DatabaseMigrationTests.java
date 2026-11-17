@@ -1,4 +1,4 @@
-package ru.vehxi.tasktracker;
+package ru.vehxi.taskflow;
 
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;

@@ -1,14 +1,14 @@
-package ru.vehxi.tasktracker;
+package ru.vehxi.taskflow;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-/** Entry point of the task tracker application. */
+/** Entry point of the TaskFlow application. */
 @SpringBootApplication
-public class TaskTrackerSpringApplication {
+public class TaskFlowApplication {
 
     /** Creates the application bootstrap component. */
-    public TaskTrackerSpringApplication() {
+    public TaskFlowApplication() {
     }
 
     /**
@@ -17,7 +17,7 @@ public class TaskTrackerSpringApplication {
      * @param args command-line configuration arguments
      */
     public static void main(String[] args) {
-        SpringApplication.run(TaskTrackerSpringApplication.class, args);
+        SpringApplication.run(TaskFlowApplication.class, args);
     }
 
 }

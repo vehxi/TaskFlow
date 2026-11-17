@@ -40,7 +40,7 @@
 | ReportService и ExcelExportService | Согласованный снимок и расчёт показателей; формирование файла из подготовленного ReportDto. |
 | MailNotificationService | Отправка готового снимка уведомления через SMTP, безопасная запись результата и возврат SENT/FAILED. |
 
-Пакеты планируются по функциям: security, users, references, projects, tasks, reports, notifications; внутри функций — web, service, repository, domain и dto по необходимости. Общие config и error содержат конфигурацию и обработку ошибок. Корневой пакет — ru.vehxi.tasktracker. Зависимости компонентов передаются конструкторами. Сервисы не зависят от HttpServletRequest и Thymeleaf; HTML- и REST-контроллеры не вызывают друг друга.
+Пакеты планируются по функциям: security, users, references, projects, tasks, reports, notifications; внутри функций — web, service, repository, domain и dto по необходимости. Общие config и error содержат конфигурацию и обработку ошибок. Корневой пакет — ru.vehxi.taskflow. Зависимости компонентов передаются конструкторами. Сервисы не зависят от HttpServletRequest и Thymeleaf; HTML- и REST-контроллеры не вызывают друг друга.
 
 spring.jpa.open-in-view=false: нужные данные загружаются и переводятся в DTO в сервисе, пока доступна транзакция. Обратные связи JPA и password_hash не сериализуются в HTTP. Все публичные классы, методы и интерфейсы документируются Javadoc по NFR-09. Задача Gradle javadoc должна проходить с проверкой doclint; после проверки результат публикуется в docs/javadoc для просмотра из репозитория и обновляется вместе с соответствующим кодом.
 

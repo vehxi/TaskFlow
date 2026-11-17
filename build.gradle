@@ -6,7 +6,7 @@ plugins {
 
 group = 'ru.vehxi'
 version = '0.1.0'
-description = 'Team project and task tracker'
+description = 'TaskFlow — team project and task tracker'
 
 java {
     toolchain {
