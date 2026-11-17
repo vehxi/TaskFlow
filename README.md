@@ -20,8 +20,8 @@ Java 21, Spring Boot 4.1.2, Spring MVC, Thymeleaf, Spring Security, Spring Data 
 ### 1. Получение проекта
 
 ```shell
-git clone https://github.com/vehxi/task-tracker-spring.git
-cd task-tracker-spring
+git clone https://github.com/vehxi/TaskFlow.git
+cd TaskFlow
 ```
 
 Все дальнейшие команды выполняются из корня проекта.

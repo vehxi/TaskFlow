@@ -10,8 +10,8 @@
 ## 1. Получение проекта
 
 ```bash
-git clone https://github.com/vehxi/task-tracker-spring.git
-cd task-tracker-spring
+git clone https://github.com/vehxi/TaskFlow.git
+cd TaskFlow
 ```
 
 Все команды ниже выполняются из корня проекта. Для Windows приведены команды PowerShell; команды Git одинаковы для всех платформ.
