@@ -5,12 +5,14 @@
 ```mermaid
 sequenceDiagram
     actor User as Руководитель
-    participant Web as Контроллер
+    participant Client as React
+    participant Web as REST-контроллер
     participant Coord as Координатор
     participant Tx as Транзакционный сервис
     participant DB as PostgreSQL
     participant Mail as Почтовый сервис
-    User->>Web: Команда, CSRF, ожидаемая версия
+    User->>Client: Действие в интерфейсе
+    Client->>Web: JSON, CSRF, ожидаемая версия
     Web->>Coord: DTO и текущий пользователь
     Coord->>Tx: Выполнить команду
     Tx->>DB: BEGIN, блокировки, проверки
@@ -18,7 +20,8 @@ sequenceDiagram
         Tx->>DB: ROLLBACK
         Tx-->>Coord: Ошибка
         Coord-->>Web: Ошибка без уведомления
-        Web-->>User: Ошибка формы или HTTP 4xx
+        Web-->>Client: HTTP 4xx и ErrorResponse
+        Client-->>User: Ошибка поля или операции
     else Команда допустима
         Tx->>DB: Сохранение и COMMIT
         Tx-->>Coord: DTO и снимок уведомления
@@ -29,7 +32,8 @@ sequenceDiagram
             Mail-->>Coord: FAILED, ошибка записана в журнал
         end
         Coord-->>Web: Сохранённые данные и статус уведомления
-        Web-->>User: Успех, при FAILED — предупреждение
+        Web-->>Client: Сохранённый DTO и notificationStatus
+        Client-->>User: Успех, при FAILED — предупреждение
     end
 ```
 

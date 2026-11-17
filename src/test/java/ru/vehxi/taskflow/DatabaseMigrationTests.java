@@ -16,7 +16,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@SpringBootTest(properties = "spring.config.import=")
+@SpringBootTest(properties = {"app.environment-file.enabled=false", "app.bootstrap.enabled=false"})
 @Testcontainers(disabledWithoutDocker = true)
 @Transactional
 class DatabaseMigrationTests {
@@ -89,6 +89,24 @@ class DatabaseMigrationTests {
                 fixture.projectId(), fixture.assigneeId());
         assertThat(jdbc.queryForObject("SELECT assignee_id FROM tasks WHERE id = ?",
                 Long.class, fixture.taskId())).isEqualTo(fixture.assigneeId());
+    }
+
+    @Test
+    void mapsTasksRolesAndGeneratedTimestampsThroughJpa(
+            @Autowired ru.vehxi.taskflow.tasks.repository.TaskRepository tasks,
+            @Autowired ru.vehxi.taskflow.tasks.repository.TimeEntryRepository entries) {
+        Fixture fixture = createTask();
+        var task = tasks.findById(fixture.taskId()).orElseThrow();
+        assertThat(task.getStatus()).isEqualTo(ru.vehxi.taskflow.tasks.domain.TaskStatus.NEW);
+        assertThat(task.getAssignee().getId()).isEqualTo(fixture.assigneeId());
+        assertThat(task.getAssignee().getRoles()).extracting("code")
+                .containsExactly(ru.vehxi.taskflow.users.domain.RoleCode.EXECUTOR);
+        assertThat(task.getCreatedAt()).isNotNull();
+        var entry = entries.saveAndFlush(new ru.vehxi.taskflow.tasks.domain.TimeEntry(
+                task, task.getAssignee(), task.getDueDate(), 30));
+        assertThat(entry.getId()).isNotNull();
+        assertThat(entry.getCreatedAt()).isNotNull();
+        assertThat(entry.getAuthor().getId()).isEqualTo(fixture.assigneeId());
     }
 
     @Test

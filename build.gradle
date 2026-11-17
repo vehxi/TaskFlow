@@ -23,17 +23,14 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-flyway'
     implementation 'org.springframework.boot:spring-boot-starter-mail'
     implementation 'org.springframework.boot:spring-boot-starter-security'
-    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'org.flywaydb:flyway-database-postgresql'
-    implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
     runtimeOnly 'org.postgresql:postgresql'
     testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-flyway-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-mail-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
-    testImplementation 'org.springframework.boot:spring-boot-starter-thymeleaf-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
@@ -53,4 +50,17 @@ tasks.withType(JavaCompile).configureEach {
 tasks.named('javadoc') {
     options.encoding = 'UTF-8'
     options.addBooleanOption('Xdoclint:all', true)
+}
+
+// Include the independently built React client in the executable JAR.
+tasks.named('processResources') {
+    from('frontend/dist') { into 'static' }
+}
+
+tasks.named('bootJar') {
+    doFirst {
+        if (!file('frontend/dist/index.html').exists()) {
+            throw new GradleException('Build the React client first: npm --prefix frontend install && npm --prefix frontend run build')
+        }
+    }
 }

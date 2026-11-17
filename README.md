@@ -4,11 +4,14 @@
 
 ## Стек
 
-Java 21, Spring Boot 4.1.2, Spring MVC, Thymeleaf, Spring Security, Spring Data JPA, PostgreSQL 16 и Flyway. Сборка — Gradle Wrapper 9.9.1.
+**Интерфейс:** React, TypeScript, Vite, CSS Modules.
+
+**Сервер:** Java 21, Spring Boot 4.1.2, Spring MVC (REST API), Spring Security, Spring Data JPA, PostgreSQL 16 и Flyway. Сборка сервера — Gradle Wrapper 9.9.1; интерфейса — npm.
 
 ## Требования
 
 - JDK 21.
+- Node.js 24 LTS и npm для интерфейса.
 - Запущенная PostgreSQL 16; стандартный порт — `5432`.
 - Git и доступ к интернету для первой загрузки Gradle и зависимостей.
 - Docker для интеграционных тестов с Testcontainers.
@@ -24,7 +27,7 @@ git clone https://github.com/vehxi/TaskFlow.git
 cd TaskFlow
 ```
 
-Все дальнейшие команды выполняются из корня проекта.
+Все дальнейшие команды выполняются из корня проекта. React-клиент находится в `frontend/`, сервер — в `src/`.
 
 ### 2. Подготовка БД и конфигурации
 
@@ -66,7 +69,7 @@ DB_MIGRATION_PASSWORD=replace-with-migration-password
 
 Приложение читает `.env` автоматически из корня проекта. Файл исключён из Git. Подробнее о формате и параметрах — в [инструкции по настройке подключения](SETUP.md#3-настройка-подключения).
 
-### 3. Запуск приложения
+### 3. Запуск сервера
 
 **macOS / Linux:**
 
@@ -80,11 +83,23 @@ DB_MIGRATION_PASSWORD=replace-with-migration-password
 .\gradlew.bat bootRun
 ```
 
-Flyway применит миграции автоматически. После сообщения `Started TaskFlowApplication` откройте [http://localhost:8080](http://localhost:8080). Остановка сервера — `Ctrl+C`.
+Flyway применит миграции автоматически. После сообщения `Started TaskFlowApplication` API будет доступно на `http://localhost:8080`. Остановка сервера — `Ctrl+C`.
 
-В стартовой конфигурации используется стандартный вход Spring Security: логин `user`, пароль выводится в консоль после `Using generated security password`. Учётные записи PostgreSQL используются для подключения к БД.
+Для входа используйте email и пароль учётной записи приложения. Порядок создания первой записи приведён в [инструкции по созданию администратора](SETUP.md#4-создание-начального-администратора). Учётные записи PostgreSQL используются только для подключения к БД.
 
-Подробнее о запуске из IntelliJ IDEA, запуске JAR и проверке миграций — в [инструкции по запуску приложения](RUNNING.md).
+### 4. Запуск интерфейса
+
+Откройте второй терминал. Команды одинаковы для macOS, Linux и Windows PowerShell:
+
+```shell
+npm --prefix frontend install
+npm --prefix frontend run dev
+```
+
+Откройте [http://localhost:5173](http://localhost:5173). Vite передаёт запросы `/api` на Spring; оба процесса должны работать одновременно. Для входа используйте созданную учётную запись приложения. Первые экраны — вход, сведения о своей записи и управление пользователями для администратора.
+
+Для подробного ознакомления с запуском из IntelliJ IDEA, настройкой двух процессов и запуском JAR обратитесь к [инструкции запуска](RUNNING.md).
+
 
 ## Тесты и сборка
 
@@ -93,8 +108,17 @@ Flyway применит миграции автоматически. После 
 | Действие | macOS / Linux | Windows PowerShell |
 | --- | --- | --- |
 | Тестирование | `./gradlew test` | `.\gradlew.bat test` |
-| Сборка JAR | `./gradlew bootJar` | `.\gradlew.bat bootJar` |
+| Сборка JAR после сборки интерфейса | `./gradlew clean bootJar` | `.\gradlew.bat clean bootJar` |
 | Генерация Javadoc | `./gradlew javadoc` | `.\gradlew.bat javadoc` |
+
+Для проверки и сборки интерфейса выполните на любой платформе:
+
+```shell
+npm --prefix frontend test
+npm --prefix frontend run build
+```
+
+Готовый `frontend/dist` включается в JAR при сборке Gradle. В таком режиме отдельный Vite не требуется.
 
 Исполняемый файл — `build/libs/taskflow-0.1.0.jar`. Отчёт тестов — `build/reports/tests/test/index.html`, Javadoc — `build/docs/javadoc/index.html`.
 

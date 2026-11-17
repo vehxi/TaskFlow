@@ -1,14 +1,13 @@
 # Компоненты приложения
 
-HTML- и REST-контроллеры используют общие сервисы и правила доступа.
+React отображает интерфейс и обращается к Spring API. Все проверки данных и полномочий выполняются сервером.
 
 ```mermaid
 flowchart TD
-    Browser["Браузер"] --> Security["Spring Security<br/>Сессия, CSRF, актуальные роли"]
-    Security --> MVC["MVC-контроллеры и Thymeleaf"]
+    Browser["Браузер / React SPA<br/>TypeScript, CSS Modules"] --> Origin["Один origin<br/>Vite proxy в разработке / Spring static в JAR"]
+    Origin --> Security["Spring Security<br/>Сессия, CSRF, актуальные роли"]
     Security --> API["REST-контроллеры и DTO"]
-    MVC --> Services["Прикладные сервисы и координаторы<br/>Доступ, правила, транзакции"]
-    API --> Services
+    API --> Services["Прикладные сервисы и координаторы<br/>Доступ, правила, транзакции"]
     Services --> Repositories["JPA-репозитории"]
     Repositories --> DB[(PostgreSQL)]
     Services --> Excel["ExcelExportService<br/>ReportDto → файл .xlsx"]

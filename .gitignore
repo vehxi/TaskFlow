@@ -38,3 +38,8 @@ out/
 
 # The Gradle wrapper is part of the reproducible build
 !/gradle/wrapper/gradle-wrapper.jar
+
+# React / Vite
+node_modules/
+frontend/dist/
+*.tsbuildinfo
