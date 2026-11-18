@@ -1,6 +1,23 @@
 /* Shared tokens and document reset; component styling lives in CSS Modules. */
+@font-face {
+  font-family: "Allo Variable";
+  src: url("/assets/fonts/allo-variable.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Nunito";
+  src: url("/assets/fonts/nunito-variable.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 650 1000;
+  font-display: swap;
+  unicode-range: U+0400-052F, U+1C80-1C8F, U+2116, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F, U+1E030-1E08F;
+}
+
 :root {
-  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  font-family: "Nunito", "Allo Variable", system-ui, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -58,8 +75,8 @@ button { min-height: 44px; padding: 10px 16px; border: 1px solid var(--line); bo
 h1, h2, h3, p { margin-top: 0; }
 h1, h2, h3 { text-wrap: balance; }
 p { line-height: 1.6; text-wrap: pretty; }
-h1 { font-size: clamp(28px, 2.5vw, 36px); line-height: 1.1; letter-spacing: -0.022em; font-weight: 600; margin-bottom: 20px; }
-h2 { font-size: 20px; letter-spacing: -0.012em; font-weight: 600; }
+h1 { font-size: clamp(28px, 2.5vw, 36px); line-height: 1.1; letter-spacing: -0.022em; font-weight: 750; margin-bottom: 20px; }
+h2 { font-size: 20px; letter-spacing: -0.012em; font-weight: 750; }
 fieldset { min-width: 0; border: 0; padding: 0; margin: 0; }
 input:not([type="checkbox"]) { width: 100%; min-height: 48px; padding: 11px 14px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--paper); color: var(--ink); }
 input[aria-invalid="true"] { border-color: var(--ink); }
