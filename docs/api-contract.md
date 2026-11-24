@@ -24,11 +24,11 @@ GET /api/csrf доступен до входа, возвращает token и he
 | GET /api/me | Любой вошедший | CurrentUserDto. |
 | GET /api/users | Администратор | Страница UserDto без пароля и хеша. |
 | GET /api/users/{id} | Администратор | UserDto с roles, active, version. |
-| GET /api/assignable-users | Руководитель | Страница активных пользователей с ролью EXECUTOR: только id, name. |
+| GET /api/assignable-users | Руководитель | Страница активных пользователей с ролью EXECUTOR: только id, name. При передаче projectId своего проекта уже включённые участники исключаются из списка. |
 | GET /api/reference-data | Любой вошедший | Типы и приоритеты с id, name, active, version; позволяет отобразить прежнее неактивное значение. |
 | GET /api/projects | Руководитель: свои; исполнитель: участие | Страница ProjectSummaryDto: id, name, description, managerId, version; без чужих задач и сводных показателей. |
 | GET /api/projects/{id} | Руководитель своего проекта / участник | ProjectSummaryDto с теми же ограничениями. |
-| GET /api/projects/{id}/members | Руководитель своего проекта | Страница участников с id пользователя и name, версия проекта в ответе. |
+| GET /api/projects/{id}/members | Руководитель своего проекта | Страница участников с id пользователя и name. Поле projectVersion соответствует тому же снимку данных, что и состав. |
 | GET /api/tasks | Руководитель / исполнитель | Страница TaskSummaryDto: id, projectId, title, dueDate, status, assigneeId, version. |
 | GET /api/tasks/{id} | Руководитель проекта / текущий исполнитель | TaskDetailDto: данные задачи, доступные имена ссылочных объектов, version; passwordHash и административные данные отсутствуют. |
 | GET /api/tasks/{id}/comments | Те же права, что у карточки | Страница CommentDto: id, authorId, authorName, body, createdAt; порядок createdAt, id. |

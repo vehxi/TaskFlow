@@ -47,6 +47,8 @@ export function useSession() {
   if (!value) throw new Error('SessionProvider is required.');
   return value;
 }
-export const landing = (user: CurrentUser) => user.roles.includes('ADMIN') ? '/admin/users' : '/account';
+export const canViewProjects = (user: CurrentUser) => user.roles.includes('MANAGER') || user.roles.includes('EXECUTOR');
+export const landing = (user: CurrentUser) => user.roles.includes('ADMIN') ? '/admin/users'
+  : canViewProjects(user) ? '/projects' : '/account';
 export const errorMessage = (error: unknown) => error instanceof Error ? error.message : 'Не удалось выполнить действие.';
 export const roleNames = { ADMIN: 'Администратор', MANAGER: 'Руководитель', EXECUTOR: 'Исполнитель' } as const;

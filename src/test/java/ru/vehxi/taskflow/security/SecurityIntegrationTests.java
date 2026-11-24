@@ -208,6 +208,119 @@ class SecurityIntegrationTests {
         assertThat(jdbc.queryForObject("SELECT role_code FROM user_roles WHERE user_id = ?", String.class, executor)).isEqualTo("EXECUTOR");
     }
 
+    @Test
+    void projectsUseOwnershipAndMembershipForListAndDirectAccess() throws Exception {
+        long manager = createUser("owner@example.test", "MANAGER");
+        long otherManager = createUser("other-manager@example.test", "MANAGER");
+        long executor = createUser("executor@example.test", "EXECUTOR");
+        createUser("admin@example.test", "ADMIN");
+        var ownerSession = login("owner@example.test");
+        var otherSession = login("other-manager@example.test");
+        var executorSession = login("executor@example.test");
+        var adminSession = login("admin@example.test");
+
+        String project = createProject(ownerSession, manager, "  Release plan  ");
+        createProject(otherSession, otherManager, "Other plan");
+        mvc.perform(get("/api/projects").session(ownerSession))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.items[0].name").value("Release plan"));
+        mvc.perform(get("/api/projects").session(executorSession))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));
+        mvc.perform(get(project).session(executorSession)).andExpect(status().isNotFound());
+        mvc.perform(get(project).session(otherSession)).andExpect(status().isNotFound());
+        mvc.perform(get(project).session(adminSession)).andExpect(status().isForbidden());
+        mvc.perform(get(project + "/members").session(otherSession)).andExpect(status().isNotFound());
+        mvc.perform(get("/api/assignable-users").session(executorSession)).andExpect(status().isForbidden());
+        mvc.perform(put(project).session(otherSession).with(csrf()).contentType("application/json")
+                .content("{\"name\":\"Foreign edit\",\"expectedVersion\":0}")).andExpect(status().isNotFound());
+        mvc.perform(post("/api/projects").session(executorSession).with(csrf()).contentType("application/json")
+                .content("{\"name\":\"Forbidden project\"}")).andExpect(status().isForbidden());
+        mvc.perform(get("/api/assignable-users").session(ownerSession).param("projectId", project.substring(project.lastIndexOf('/') + 1)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items[0].id").value(executor))
+                .andExpect(jsonPath("$.items[0].email").doesNotExist());
+
+        addMember(ownerSession, project, executor, 0).andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.projectVersion").value(1));
+        mvc.perform(get("/api/projects").session(executorSession))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1));
+        mvc.perform(get(project).session(executorSession)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Release plan")).andExpect(jsonPath("$.tasks").doesNotExist());
+        mvc.perform(get(project + "/members").session(executorSession)).andExpect(status().isForbidden());
+        mvc.perform(get(project + "/members").session(ownerSession))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.projectVersion").value(1))
+                .andExpect(jsonPath("$.items[0].id").value(executor)).andExpect(jsonPath("$.items[0].email").doesNotExist());
+
+        mvc.perform(delete(project + "/members/" + executor).session(ownerSession).with(csrf())
+                .param("expectedProjectVersion", "1")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.projectVersion").value(2));
+        mvc.perform(get(project).session(executorSession)).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void projectCommandsCheckVersionsValidationAndOpenTaskAssignments() throws Exception {
+        long manager = createUser("owner@example.test", "MANAGER");
+        long executor = createUser("executor@example.test", "EXECUTOR");
+        long inactive = createUser("inactive@example.test", "EXECUTOR");
+        jdbc.update("UPDATE users SET active = false WHERE id = ?", inactive);
+        var ownerSession = login("owner@example.test");
+
+        mvc.perform(post("/api/projects").session(ownerSession).with(csrf()).contentType("application/json")
+                .content("{\"name\":\"  \"}")).andExpect(status().isBadRequest());
+        String project = createProject(ownerSession, manager, "Initial plan");
+        long projectId = Long.parseLong(project.substring(project.lastIndexOf('/') + 1));
+        mvc.perform(put(project).session(ownerSession).with(csrf()).contentType("application/json")
+                .content("{\"name\":\"Updated plan\",\"description\":\"New details\",\"expectedVersion\":0}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.version").value(1));
+        mvc.perform(put(project).session(ownerSession).with(csrf()).contentType("application/json")
+                .content("{\"name\":\"Updated plan\",\"description\":\"New details\",\"expectedVersion\":1}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.version").value(1));
+        mvc.perform(put(project).session(ownerSession).with(csrf()).contentType("application/json")
+                .content("{\"name\":\"No version\"}")).andExpect(status().isBadRequest());
+        addMember(ownerSession, project, executor, 0).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("STALE_VERSION"));
+        addMember(ownerSession, project, inactive, 1).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("RULE_CONFLICT"));
+        addMember(ownerSession, project, manager, 1).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("RULE_CONFLICT"));
+        addMember(ownerSession, project, executor, 1).andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.projectVersion").value(2));
+        addMember(ownerSession, project, executor, 2).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("DUPLICATE_VALUE"));
+        mvc.perform(get("/api/assignable-users").session(ownerSession).param("projectId", String.valueOf(projectId)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));
+
+        String suffix = java.util.UUID.randomUUID().toString();
+        long type = jdbc.queryForObject("INSERT INTO task_types (name) VALUES (?) RETURNING id", Long.class, "Type " + suffix);
+        long priority = jdbc.queryForObject("INSERT INTO task_priorities (name) VALUES (?) RETURNING id", Long.class, "Priority " + suffix);
+        long task = jdbc.queryForObject("""
+                INSERT INTO tasks (project_id, author_id, assignee_id, type_id, priority_id, title, due_date)
+                VALUES (?, ?, ?, ?, ?, 'Open task', CURRENT_DATE) RETURNING id
+                """, Long.class, projectId, manager, executor, type, priority);
+        String membership = project + "/members/" + executor;
+        mvc.perform(delete(membership).session(ownerSession).with(csrf())).andExpect(status().isBadRequest());
+        mvc.perform(delete(membership).session(ownerSession).with(csrf()).param("expectedProjectVersion", "2"))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("RULE_CONFLICT"));
+        mvc.perform(get(project).session(ownerSession)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Updated plan")).andExpect(jsonPath("$.version").value(2));
+        jdbc.update("UPDATE tasks SET status = 'DONE' WHERE id = ?", task);
+        mvc.perform(delete(membership).session(ownerSession).with(csrf()).param("expectedProjectVersion", "2"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.projectVersion").value(3));
+        assertThat(jdbc.queryForObject("SELECT assignee_id FROM tasks WHERE id = ?", Long.class, task)).isEqualTo(executor);
+    }
+
+    private String createProject(MockHttpSession session, long manager, String name) throws Exception {
+        return mvc.perform(post("/api/projects").session(session).with(csrf()).contentType("application/json")
+                        .content("{\"name\":\"" + name + "\"}"))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.data.managerId").value(manager))
+                .andExpect(jsonPath("$.data.version").value(0)).andReturn().getResponse().getHeader("Location");
+    }
+
+    private org.springframework.test.web.servlet.ResultActions addMember(MockHttpSession session, String project,
+            long userId, long version) throws Exception {
+        return mvc.perform(post(project + "/members").session(session).with(csrf()).contentType("application/json")
+                .content("{\"userId\":" + userId + ",\"expectedProjectVersion\":" + version + "}"));
+    }
+
     private long createUser(String email, String role) {
         long id = jdbc.queryForObject("INSERT INTO users (name, email, password_hash) VALUES ('Test user', ?, ?) RETURNING id",
                 Long.class, email, encoder.encode("correct-password"));

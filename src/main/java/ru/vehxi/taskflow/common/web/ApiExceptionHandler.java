@@ -9,6 +9,7 @@ import org.springframework.dao.*;
 import org.springframework.http.*;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -67,7 +68,8 @@ public class ApiExceptionHandler {
     /** Returns safe validation error.
      * @param failure invalid transport or route value
      * @return safe validation error */
-    @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class})
+    @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class,
+            MissingServletRequestParameterException.class})
     public ResponseEntity<ErrorResponse> malformed(Exception failure) { return invalid(Map.of()); }
 
     /** Returns duplicate or rule conflict.

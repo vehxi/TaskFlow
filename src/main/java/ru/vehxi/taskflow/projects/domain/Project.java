@@ -45,4 +45,12 @@ public class Project extends VersionedCreatedEntity {
      * @return the description value
      */
     public String getDescription() { return description; }
+
+    /** Updates the editable details.
+     * @param name normalized name
+     * @param description normalized description */
+    public void updateDetails(String name, String description) {
+        this.name = name;
+        this.description = description;
+    }
 }

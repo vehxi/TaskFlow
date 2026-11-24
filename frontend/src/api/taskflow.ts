@@ -1,5 +1,8 @@
 import { ApiClient } from './client.ts';
-import type { CreateUser, CurrentUser, Mutation, Page, UpdateUser, UserAccount } from './types.ts';
+import type {
+  CreateUser, CurrentUser, MembershipChange, Mutation, Page, ProjectDetails, ProjectMember,
+  ProjectMembers, ProjectSummary, UpdateUser, UserAccount,
+} from './types.ts';
 
 export const api = new ApiClient(undefined,
   () => window.dispatchEvent(new Event('taskflow:session-expired')),
@@ -24,3 +27,21 @@ export const getUser = (id: string, signal?: AbortSignal) =>
 export const createUser = (body: CreateUser) => api.json<Mutation<UserAccount>>('/api/users', 'POST', body);
 export const updateUser = (id: string, body: UpdateUser) =>
   api.json<Mutation<UserAccount>>(`/api/users/${encodeURIComponent(id)}`, 'PUT', body);
+
+export const getProjects = (page: number, signal: AbortSignal) =>
+  api.request<Page<ProjectSummary>>(`/api/projects?page=${page}`, { signal });
+export const getProject = (id: string, signal: AbortSignal) =>
+  api.request<ProjectSummary>(`/api/projects/${encodeURIComponent(id)}`, { signal });
+export const createProject = (body: ProjectDetails) =>
+  api.json<Mutation<ProjectSummary>>('/api/projects', 'POST', body);
+export const updateProject = (id: number, body: ProjectDetails, expectedVersion: number) =>
+  api.json<Mutation<ProjectSummary>>(`/api/projects/${id}`, 'PUT', { ...body, expectedVersion });
+export const getMembers = (id: number, page: number, signal: AbortSignal) =>
+  api.request<ProjectMembers>(`/api/projects/${id}/members?page=${page}`, { signal });
+export const getCandidates = (id: number, page: number, signal: AbortSignal) =>
+  api.request<Page<ProjectMember>>(`/api/assignable-users?projectId=${id}&page=${page}`, { signal });
+export const addMember = (id: number, userId: number, expectedProjectVersion: number) =>
+  api.json<Mutation<MembershipChange>>(`/api/projects/${id}/members`, 'POST', { userId, expectedProjectVersion });
+export const removeMember = (id: number, userId: number, expectedProjectVersion: number) =>
+  api.request<Mutation<MembershipChange>>(
+    `/api/projects/${id}/members/${userId}?expectedProjectVersion=${expectedProjectVersion}`, { method: 'DELETE' });

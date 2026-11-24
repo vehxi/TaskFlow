@@ -1,0 +1,112 @@
+.projectList, .memberList {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.projectList { border-top: 1px solid var(--line); }
+
+.projectRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  min-height: 76px;
+  padding: 15px 8px 15px 0;
+  border-bottom: 1px solid var(--line);
+  text-decoration: none;
+}
+
+.folder {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-control);
+  background: var(--soft);
+  color: var(--muted);
+}
+
+.summary strong { overflow-wrap: anywhere; }
+.summary p {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--muted);
+  margin: 5px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.projectRow > svg { color: var(--muted); }
+
+.cardHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 25px;
+  margin-bottom: 24px;
+}
+
+.cardHeading h1 { margin: 0; overflow-wrap: anywhere; }
+
+.description {
+  margin: 0 0 32px;
+  max-width: 68ch;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.textarea {
+  width: 100%;
+  padding: 12px;
+  resize: vertical;
+  font: inherit;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+}
+
+.textarea[aria-invalid="true"] { border-style: dashed; }
+
+.members { margin-top: 42px; }
+.members > div:first-of-type { flex-wrap: wrap; }
+.memberEmpty { color: var(--muted); padding-block: 25px; }
+.memberList li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-block: 10px;
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+
+.remove {
+  min-height: 44px;
+  padding-inline: 10px;
+  font-size: 12px;
+  background: transparent;
+  color: var(--muted);
+}
+
+.picker {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  margin-block: 20px;
+  background: var(--soft);
+  border-radius: var(--radius-control);
+}
+
+.picker label { display: grid; min-width: 0; gap: 8px; font-size: 13px; }
+.picker select { width: 100%; text-overflow: ellipsis; }
+.pickerActions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+
+@media (hover: hover) {
+  .projectRow:hover { background: var(--hover); }
+  .remove:hover { text-decoration: underline; }
+}

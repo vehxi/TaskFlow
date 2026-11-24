@@ -1,5 +1,7 @@
 package ru.vehxi.taskflow.users.repository;
 import org.springframework.data.jpa.repository.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import java.util.Optional;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.QueryHint;
@@ -38,6 +40,19 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @return whether the address is registered
      */
     boolean existsByEmail(String email);
+
+    /** Returns eligible accounts for the selected role.
+     * @param code required role
+     * @param projectId project to exclude existing members from, or zero for all candidates
+     * @param pageable stable pagination
+     * @return active accounts */
+    @Query("""
+            select u from User u join u.roles r where u.active = true and r.code = :code
+                and (:projectId = 0 or not exists (
+                    select m.id.userId from ProjectMembership m
+                    where m.id.projectId = :projectId and m.id.userId = u.id))
+            """)
+    Page<User> findAssignable(@Param("code") RoleCode code, @Param("projectId") long projectId, Pageable pageable);
     /** Returns locked account; roles are loaded after locking the user row.
      * @param id account key
      * @return locked account; roles are loaded after locking the user row */

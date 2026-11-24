@@ -35,10 +35,14 @@ public class SecurityConfiguration {
         http.authorizeHttpRequests(a -> a
                 .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.FORWARD, jakarta.servlet.DispatcherType.ERROR).permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/", "/login", "/admin/users", "/admin/users/new", "/admin/users/*", "/account",
-                        "/index.html", "/assets/**", "/favicon.svg", "/api/csrf").permitAll()
+                        "/projects", "/projects/*", "/index.html", "/assets/**", "/favicon.svg", "/api/csrf").permitAll()
                 .requestMatchers("/api/session", "/api/session/logout", "/error").permitAll()
                 .requestMatchers("/api/users", "/api/users/**").hasRole("ADMIN")
-                .requestMatchers("/api/projects/**", "/api/tasks/**")
+                .requestMatchers("/api/assignable-users", "/api/projects/*/members", "/api/projects/*/members/*")
+                    .hasRole("MANAGER")
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/projects").hasRole("MANAGER")
+                .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/projects/*").hasRole("MANAGER")
+                .requestMatchers("/api/projects", "/api/projects/**", "/api/tasks/**")
                     .hasAnyRole("MANAGER", "EXECUTOR")
                 .requestMatchers("/api/me").authenticated()
                 .anyRequest().denyAll())
