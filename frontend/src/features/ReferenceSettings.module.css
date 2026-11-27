@@ -1,0 +1,95 @@
+.catalogs {
+  display: grid;
+  gap: 36px;
+  max-width: 840px;
+}
+
+.catalog {
+  min-width: 0;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.heading h2 {
+  font-size: 20px;
+}
+
+.values {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.values > li {
+  border-bottom: 1px solid var(--line);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 90px auto;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 0;
+}
+
+.row strong {
+  overflow-wrap: anywhere;
+}
+
+.editor {
+  margin: 10px 0;
+  padding: 16px;
+  border-radius: var(--radius-control);
+  background: var(--soft);
+}
+
+.editor fieldset {
+  min-width: 0;
+  gap: 14px;
+}
+
+.editor .availability {
+  display: flex;
+  align-items: center;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.row .inactive {
+  text-decoration: none;
+}
+
+.catalog button[aria-disabled='true'] {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.empty {
+  color: var(--muted);
+  padding: 16px 0;
+}
+
+@media (max-width: 480px) {
+  .row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 12px;
+  }
+
+  .row button {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+}

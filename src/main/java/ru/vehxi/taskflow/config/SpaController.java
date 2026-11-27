@@ -10,7 +10,7 @@ public class SpaController {
     public SpaController() { }
     /** Returns static React entry point; API and asset paths are not forwarded.
      * @return static React entry point; API and asset paths are not forwarded */
-    @GetMapping({"/", "/login", "/account", "/admin/users", "/admin/users/new", "/admin/users/{id:[0-9]+}",
+    @GetMapping({"/", "/login", "/account", "/admin/users", "/admin/users/new", "/admin/users/{id:[0-9]+}", "/admin/reference-data",
             "/projects", "/projects/new", "/projects/{id:[0-9]+}", "/projects/{id:[0-9]+}/tasks/new",
             "/tasks", "/tasks/{id:[0-9]+}", "/tasks/{id:[0-9]+}/edit"})
     public String application() { return "forward:/index.html"; }

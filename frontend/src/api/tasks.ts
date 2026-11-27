@@ -1,6 +1,6 @@
 import { api } from './taskflow.ts';
 import type {
-  Mutation, Page, ProjectMember, ReferenceData, TaskComment, TaskDetail, TaskFields, TaskFilterOptions,
+  Mutation, Page, ProjectMember, TaskComment, TaskDetail, TaskFields, TaskFilterOptions,
   TaskStatus, TaskSummary, TaskTimeEntry, TaskTimePage,
 } from './types.ts';
 
@@ -14,8 +14,6 @@ export const createTask = (projectId: number, fields: TaskFields) =>
   api.json<Mutation<TaskDetail>>(`/api/projects/${projectId}/tasks`, 'POST', fields);
 export const updateTask = (id: number, fields: TaskFields, expectedVersion: number) =>
   api.json<Mutation<TaskDetail>>(`/api/tasks/${id}`, 'PUT', { ...fields, expectedVersion });
-export const getReferenceData = (signal: AbortSignal) =>
-  api.request<ReferenceData>('/api/reference-data', { signal });
 
 export async function getTaskAssignees(projectId: number, signal: AbortSignal) {
   const result = new Map<number, ProjectMember>();

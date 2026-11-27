@@ -34,11 +34,12 @@ public class SecurityConfiguration {
             throws Exception {
         http.authorizeHttpRequests(a -> a
                 .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.FORWARD, jakarta.servlet.DispatcherType.ERROR).permitAll()
-                .requestMatchers(org.springframework.http.HttpMethod.GET, "/", "/login", "/admin/users", "/admin/users/new", "/admin/users/*", "/account",
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/", "/login", "/admin/users", "/admin/users/new", "/admin/users/*", "/admin/reference-data", "/account",
                         "/projects", "/projects/*", "/projects/*/tasks/new", "/tasks", "/tasks/*", "/tasks/*/edit",
                         "/index.html", "/assets/**", "/favicon.svg", "/api/csrf").permitAll()
                 .requestMatchers("/api/session", "/api/session/logout", "/error").permitAll()
-                .requestMatchers("/api/users", "/api/users/**").hasRole("ADMIN")
+                .requestMatchers("/api/users", "/api/users/**",
+                        "/api/task-types", "/api/task-types/*", "/api/task-priorities", "/api/task-priorities/*").hasRole("ADMIN")
                 .requestMatchers("/api/assignable-users", "/api/projects/*/members", "/api/projects/*/members/*")
                     .hasRole("MANAGER")
                 .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/projects", "/api/projects/*/tasks").hasRole("MANAGER")

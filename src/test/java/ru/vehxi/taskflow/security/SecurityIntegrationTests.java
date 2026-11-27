@@ -18,6 +18,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 import ru.vehxi.taskflow.bootstrap.*;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.hamcrest.Matchers.hasItem;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -367,6 +368,66 @@ class SecurityIntegrationTests {
     }
 
     @Test
+    void administersBothReferenceCatalogsWithoutRemovingHistoricalValues() throws Exception {
+        createUser("reference-admin@example.test", "ADMIN");
+        createUser("reference-executor@example.test", "EXECUTOR");
+        var admin = login("reference-admin@example.test");
+        var executor = login("reference-executor@example.test");
+
+        for (String catalog : java.util.List.of("/api/task-types", "/api/task-priorities")) {
+            mvc.perform(post(catalog).session(executor).with(csrf()).contentType("application/json")
+                    .content("""
+                            {"name":"Для проверки"}
+                            """)).andExpect(status().isForbidden());
+            mvc.perform(post(catalog).session(admin).contentType("application/json")
+                    .content("""
+                            {"name":"Для проверки"}
+                            """)).andExpect(status().isForbidden());
+            mvc.perform(post(catalog).session(admin).with(csrf()).contentType("application/json")
+                    .content("""
+                            {"name":"   "}
+                            """)).andExpect(status().isBadRequest()).andExpect(jsonPath("$.fieldErrors.name").isArray());
+
+            String location = mvc.perform(post(catalog).session(admin).with(csrf()).contentType("application/json")
+                    .content("""
+                            {"name":"  Для проверки  "}
+                            """)).andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.data.name").value("Для проверки"))
+                    .andExpect(jsonPath("$.data.active").value(true)).andExpect(jsonPath("$.data.version").value(0))
+                    .andReturn().getResponse().getHeader("Location");
+            mvc.perform(post(catalog).session(admin).with(csrf()).contentType("application/json")
+                    .content("""
+                            {"name":"  ДЛЯ ПРОВЕРКИ  "}
+                            """)).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("DUPLICATE_VALUE"));
+            mvc.perform(put(location).session(admin).with(csrf()).contentType("application/json")
+                    .content("""
+                            {"name":"Для проверки","active":false}
+                            """)).andExpect(status().isBadRequest());
+            String renameAndDeactivate = """
+                    {"name":"Архивное значение","active":false,"expectedVersion":0}
+                    """;
+            mvc.perform(put(location).session(executor).with(csrf()).contentType("application/json")
+                    .content(renameAndDeactivate)).andExpect(status().isForbidden());
+            mvc.perform(put(location).session(admin).with(csrf()).contentType("application/json")
+                    .content(renameAndDeactivate)).andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.name").value("Архивное значение"))
+                    .andExpect(jsonPath("$.data.active").value(false)).andExpect(jsonPath("$.data.version").value(1));
+            mvc.perform(put(location).session(admin).with(csrf()).contentType("application/json")
+                    .content(renameAndDeactivate)).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("STALE_VERSION"));
+            mvc.perform(put(location).session(admin).with(csrf()).contentType("application/json")
+                    .content("""
+                            {"name":"Архивное значение","active":false,"expectedVersion":1}
+                            """)).andExpect(status().isOk()).andExpect(jsonPath("$.data.version").value(1));
+            mvc.perform(get(location).session(admin)).andExpect(status().isOk())
+                    .andExpect(jsonPath("$.active").value(false));
+        }
+
+        mvc.perform(get("/api/reference-data").session(executor)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.types[*].name").value(hasItem("Архивное значение")))
+                .andExpect(jsonPath("$.priorities[*].name").value(hasItem("Архивное значение")));
+    }
+
+    @Test
     void taskCommandsRejectInvalidDatesInactiveReferencesAndIneligibleAssignees() throws Exception {
         long owner = createUser("owner@example.test", "MANAGER");
         long executor = createUser("executor@example.test", "EXECUTOR");
@@ -391,6 +452,10 @@ class SecurityIntegrationTests {
         String task = mvc.perform(post(project + "/tasks").session(manager).with(csrf()).contentType("application/json").content(command))
                 .andExpect(status().isCreated()).andReturn().getResponse().getHeader("Location");
         jdbc.update("UPDATE task_types SET active = false WHERE id = ?", type);
+        mvc.perform(post(project + "/tasks").session(manager).with(csrf()).contentType("application/json")
+                .content(command)).andExpect(status().isConflict());
+        mvc.perform(get(task).session(manager)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.typeId").value(type)).andExpect(jsonPath("$.typeName").value("Test type"));
         jdbc.update("UPDATE users SET active = false WHERE id = ?", executor);
         mvc.perform(get(project + "/members").session(manager).param("assignableOnly", "true"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));

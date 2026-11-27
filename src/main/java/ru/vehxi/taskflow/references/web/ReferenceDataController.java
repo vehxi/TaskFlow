@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+import ru.vehxi.taskflow.references.ReferenceValue;
 import ru.vehxi.taskflow.references.repository.TaskPriorityRepository;
 import ru.vehxi.taskflow.references.repository.TaskTypeRepository;
 
@@ -29,19 +30,12 @@ public class ReferenceDataController {
     public ReferenceData get() {
         Sort order = Sort.by("id");
         return new ReferenceData(
-                types.findAll(order).stream().map(t -> new Value(t.getId(), t.getName(), t.isActive(), t.getVersion())).toList(),
-                priorities.findAll(order).stream().map(p -> new Value(p.getId(), p.getName(), p.isActive(), p.getVersion())).toList());
+                types.findAll(order).stream().map(ReferenceValue::from).toList(),
+                priorities.findAll(order).stream().map(ReferenceValue::from).toList());
     }
 
     /** Reference types and priorities.
      * @param types available types
      * @param priorities available priorities */
-    public record ReferenceData(List<Value> types, List<Value> priorities) { }
-
-    /** A reference data value.
-     * @param id value identity
-     * @param name label
-     * @param active whether new tasks can select it
-     * @param version current version */
-    public record Value(Long id, String name, boolean active, long version) { }
+    public record ReferenceData(List<ReferenceValue> types, List<ReferenceValue> priorities) { }
 }

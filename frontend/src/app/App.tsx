@@ -4,6 +4,7 @@ import { signOut } from '../api/taskflow.ts';
 import { canViewProjects, errorMessage, landing, roleNames, useSession } from './session.tsx';
 import { Login } from '../features/Login.tsx';
 import { UserList } from '../features/UserList.tsx';
+import { ReferenceSettings } from '../features/ReferenceSettings.tsx';
 import { UserEditor } from '../features/UserEditor.tsx';
 import { ProjectList } from '../features/ProjectList.tsx';
 import { NewProject, ProjectCard } from '../features/ProjectCard.tsx';
@@ -35,6 +36,7 @@ export function App() {
         <Route path="admin/users" element={<UserList />} />
         <Route path="admin/users/new" element={<UserEditor key="new" />} />
         <Route path="admin/users/:id" element={<UserEditor />} />
+        <Route path="admin/reference-data" element={<ReferenceSettings />} />
       </Route>
       <Route path="*" element={<section><p className={styles.eyebrow}>404 / СТРАНИЦА НЕ НАЙДЕНА</p><h1>Здесь пока ничего нет</h1><NavLink to="/">В рабочее пространство</NavLink></section>} />
     </Route>
@@ -47,7 +49,8 @@ function Workspace() {
   const location = useLocation();
   if (!user) return <Navigate replace to="/login" />;
   const area = location.pathname.startsWith('/tasks') ? 'Задачи' : location.pathname.startsWith('/projects') ? 'Проекты'
-    : location.pathname.startsWith('/admin/users') ? 'Пользователи' : 'Учётная запись';
+    : location.pathname.startsWith('/admin/users') ? 'Пользователи'
+    : location.pathname.startsWith('/admin/reference-data') ? 'Справочники' : 'Учётная запись';
   async function logout() {
     setLeaving(true); setError('');
     try { await signOut(); setUser(null); } catch (failure) { setError(errorMessage(failure)); }
@@ -61,6 +64,7 @@ function Workspace() {
       <p className={styles.navLabel}>Рабочее пространство</p>
       <nav aria-label="Основная навигация">
         {user.roles.includes('ADMIN') && <NavLink className={({ isActive }) => isActive ? styles.selected : styles.navItem} to="/admin/users"><Icon name="users" />Пользователи</NavLink>}
+        {user.roles.includes('ADMIN') && <NavLink className={({ isActive }) => isActive ? styles.selected : styles.navItem} to="/admin/reference-data"><Icon name="references" />Справочники</NavLink>}
         {canViewProjects(user) && <NavLink className={({ isActive }) => isActive ? styles.selected : styles.navItem} to="/projects"><Icon name="projects" />Проекты</NavLink>}
         {canViewProjects(user) && <NavLink className={({ isActive }) => isActive ? styles.selected : styles.navItem} to="/tasks"><Icon name="tasks" />Задачи</NavLink>}
         <NavLink className={({ isActive }) => isActive ? styles.selected : styles.navItem} to="/account">
@@ -82,7 +86,7 @@ function Workspace() {
 }
 function Administrator() {
   const { user } = useSession();
-  return user?.roles.includes('ADMIN') ? <Outlet /> : <section><p className={styles.eyebrow}>ДОСТУП ОГРАНИЧЕН</p><h1>Этот раздел для администратора</h1><p>Текущая учётная запись не имеет доступа к управлению пользователями.</p></section>;
+  return user?.roles.includes('ADMIN') ? <Outlet /> : <section><p className={styles.eyebrow}>ДОСТУП ОГРАНИЧЕН</p><h1>Этот раздел для администратора</h1><p>Текущая учётная запись не имеет доступа к разделам администрирования.</p></section>;
 }
 function ProjectAccess() {
   const { user } = useSession();

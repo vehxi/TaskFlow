@@ -2,10 +2,11 @@ import type { ReactNode } from 'react';
 import styles from './App.module.css';
 
 type IconName = 'users' | 'projects' | 'tasks' | 'account' | 'logout' | 'plus' | 'arrow' | 'sun' | 'moon'
-  | 'eye' | 'eyeOff' | 'filters' | 'calendar';
+  | 'references' | 'eye' | 'eyeOff' | 'filters' | 'calendar';
 export function Icon({ name }: { name: IconName }) {
   const paths: Record<IconName, ReactNode> = {
     users: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m20 0v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /><circle cx="9" cy="7" r="4" /></>,
+    references: <><path d="M3 5h7l4 4-5 5-6-6V5Zm10 0h3l5 5-7 7-2-2" /><circle cx="6.5" cy="8" r=".5" /></>,
     projects: <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />,
     tasks: <path d="m3 6 2 2 4-4m3 3h9M3 13l2 2 4-4m3 3h9m-9 6h9" />,
     account: <><circle cx="12" cy="12" r="9" /><circle cx="12" cy="9" r="3" /><path d="M6 19a6 6 0 0 1 12 0" /></>,

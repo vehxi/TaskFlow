@@ -140,8 +140,8 @@ class DatabaseMigrationTests {
 
     @Test
     void rejectsCaseInsensitiveDictionaryDuplicates() {
-        jdbc.update("INSERT INTO task_types (name) VALUES ('Ошибка')");
-        assertThatThrownBy(() -> jdbc.update("INSERT INTO task_types (name) VALUES ('ОШИБКА')"))
+        jdbc.update("INSERT INTO task_types (name) VALUES ('Название для теста уникальности')");
+        assertThatThrownBy(() -> jdbc.update("INSERT INTO task_types (name) VALUES ('НАЗВАНИЕ ДЛЯ ТЕСТА УНИКАЛЬНОСТИ')"))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 

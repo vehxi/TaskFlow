@@ -22,6 +22,15 @@ public class TaskPriority extends VersionedEntity {
         this.active = active;
     }
     /**
+     * Updates the label and whether it may be newly selected.
+     * @param name the new label
+     * @param active whether the value is available for new selections
+     */
+    public void update(String name, boolean active) {
+        this.name = name;
+        this.active = active;
+    }
+    /**
      * Returns the name value.
      *
      * @return the name value

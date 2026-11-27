@@ -26,6 +26,7 @@ GET /api/csrf доступен до входа, возвращает token и he
 | GET /api/users/{id} | Администратор | UserDto с roles, active, version. |
 | GET /api/assignable-users | Руководитель | Страница активных пользователей с ролью EXECUTOR: только id, name. При передаче projectId своего проекта уже включённые участники исключаются из списка. |
 | GET /api/reference-data | Любой вошедший | Типы и приоритеты с id, name, active, version; позволяет отобразить прежнее неактивное значение. |
+| GET /api/task-types/{id}, GET /api/task-priorities/{id} | Администратор | Текущие id, name, active и version для обновления формы. |
 | GET /api/projects | Руководитель: свои; исполнитель: участие | Страница ProjectSummaryDto: id, name, description, managerId, version; без чужих задач и сводных показателей. |
 | GET /api/projects/{id} | Руководитель своего проекта / участник | ProjectSummaryDto с теми же ограничениями. |
 | GET /api/projects/{id}/members | Руководитель своего проекта | Страница участников с id пользователя и name. Поле projectVersion соответствует тому же снимку данных, что и состав. При assignableOnly=true возвращает только активных исполнителей. |
@@ -50,9 +51,9 @@ GET /api/csrf доступен до входа, возвращает token и he
 | POST /api/users | name, email, initialPassword, roles | Администратор; создаёт активную запись с непустыми ролями. |
 | PUT /api/users/{id} | name, email, roles, active, expectedVersion | Администратор; изменяет данные, роли или блокировку с проверкой BR-03. Пароль через этот DTO не меняется. |
 | POST /api/task-types | name | Администратор; новое активное значение. |
-| PUT /api/task-types/{id} | name, active, expectedVersion | Администратор; переименование или деактивация. |
+| PUT /api/task-types/{id} | name, active, expectedVersion | Администратор; переименование, деактивация или повторная активация. |
 | POST /api/task-priorities | name | Администратор; новое активное значение. |
-| PUT /api/task-priorities/{id} | name, active, expectedVersion | Администратор; переименование или деактивация. |
+| PUT /api/task-priorities/{id} | name, active, expectedVersion | Администратор; переименование, деактивация или повторная активация. |
 | POST /api/projects | name, description | Руководитель; managerId определяется по текущему пользователю. |
 | PUT /api/projects/{id} | name, description, expectedVersion | Руководитель своего проекта; обновляет сведения. |
 | POST /api/projects/{id}/members | userId, expectedProjectVersion | Руководитель; активный исполнитель, уникальное участие; увеличивается версия проекта; 200 с новой projectVersion. |
