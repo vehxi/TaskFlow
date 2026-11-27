@@ -35,7 +35,7 @@ public class SecurityConfiguration {
         http.authorizeHttpRequests(a -> a
                 .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.FORWARD, jakarta.servlet.DispatcherType.ERROR).permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/", "/login", "/admin/users", "/admin/users/new", "/admin/users/*", "/admin/reference-data", "/account",
-                        "/projects", "/projects/*", "/projects/*/tasks/new", "/tasks", "/tasks/*", "/tasks/*/edit",
+                        "/projects", "/projects/*", "/projects/*/tasks/new", "/projects/*/report", "/tasks", "/tasks/*", "/tasks/*/edit",
                         "/index.html", "/assets/**", "/favicon.svg", "/api/csrf").permitAll()
                 .requestMatchers("/api/session", "/api/session/logout", "/error").permitAll()
                 .requestMatchers("/api/users", "/api/users/**",
@@ -44,6 +44,8 @@ public class SecurityConfiguration {
                     .hasRole("MANAGER")
                 .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/projects", "/api/projects/*/tasks").hasRole("MANAGER")
                 .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/projects/*", "/api/tasks/*").hasRole("MANAGER")
+                .requestMatchers("/api/projects/*/report", "/api/projects/*/report.xlsx",
+                        "/api/projects/*/report/overdue").hasRole("MANAGER")
                 .requestMatchers("/api/projects", "/api/projects/**", "/api/tasks", "/api/tasks/**")
                     .hasAnyRole("MANAGER", "EXECUTOR")
                 .requestMatchers("/api/me", "/api/reference-data").authenticated()

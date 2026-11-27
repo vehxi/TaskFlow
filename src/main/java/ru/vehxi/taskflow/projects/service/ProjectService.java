@@ -68,6 +68,11 @@ public class ProjectService {
         return ProjectSummaryDto.from(project);
     }
 
+    ProjectSummaryDto requireManagedProject(Long actorId, Long id) {
+        requireManager(users.findWithRolesById(actorId).orElse(null));
+        return ProjectSummaryDto.from(owned(projects.findById(id).orElse(null), actorId));
+    }
+
     /** Lists the current project participants and version from the same database snapshot.
      * @param actorId current account
      * @param id project identity

@@ -1,0 +1,181 @@
+.report {
+  max-width: 1050px;
+}
+
+.heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+}
+
+.heading h1 {
+  overflow-wrap: anywhere;
+}
+
+.caption, .timestamp {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.timestamp {
+  margin-top: 12px;
+}
+
+.controls {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.export {
+  position: relative;
+}
+
+.export [role='alert'] {
+  position: absolute;
+  z-index: 1;
+  inset-inline-end: 0;
+  width: min(18rem, 70vw);
+  box-shadow: var(--shadow);
+}
+
+.summary {
+  margin-block: 26px 32px;
+  padding: clamp(16px, 3vw, 24px);
+  background: var(--soft);
+  border-radius: var(--radius-panel);
+}
+
+.metrics, .statuses dl {
+  display: grid;
+  gap: 14px 20px;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.metrics {
+  grid-template-columns: 2fr repeat(2, minmax(0, 1fr));
+}
+
+.metrics dt, .statuses dt {
+  color: var(--muted);
+}
+
+.metrics dd {
+  font-size: clamp(25px, 4vw, 38px);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.metrics progress {
+  display: block;
+  width: 100%;
+  max-width: 245px;
+  height: 10px;
+  margin-top: 8px;
+  accent-color: var(--accent);
+}
+
+.report dd {
+  margin: 4px 0 0;
+}
+
+.statuses {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.report h2 {
+  margin-bottom: 10px;
+  font-size: 19px;
+}
+
+.statuses dl {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.statuses dd {
+  font-weight: 700;
+}
+
+.details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 26px;
+}
+
+.details p, .overdue p {
+  color: var(--muted);
+}
+
+.overdue {
+  margin-bottom: 32px;
+  scroll-margin-top: 16px;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.report table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.report th, .report td {
+  padding: 10px 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+
+.report thead th {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.report th:first-child {
+  padding-left: 0;
+}
+
+.report .breakdown tr > :last-child {
+  width: 24%;
+  text-align: right;
+}
+
+.breakdown {
+  table-layout: fixed;
+}
+
+.overdueTable {
+  min-width: 33rem;
+  table-layout: fixed;
+}
+
+.overdueTable th:first-child {
+  width: 34%;
+}
+
+@media (max-width: 620px) {
+  .metrics, .statuses dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .progressMetric {
+    grid-column: 1 / -1;
+  }
+
+  .details {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .export [role='alert'] {
+    position: static;
+    width: auto;
+  }
+}

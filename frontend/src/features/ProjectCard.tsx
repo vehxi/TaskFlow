@@ -83,6 +83,7 @@ function Card({ id }: { id: string }) {
             {project.description && <p className={projectStyles.description}>{project.description}</p>}
             <div className={taskStyles.projectLinks}>
               <Link className={styles.secondary} to={`/tasks?projectId=${project.id}`}>Задачи проекта</Link>
+              {canManage && <Link className={styles.secondary} to={`/projects/${project.id}/report`}>Отчёт</Link>}
               {canManage && <Link className={styles.primary} to={`/projects/${project.id}/tasks/new`}>Новая задача</Link>}
             </div>
             {canManage && <MembersPanel project={project} reloadProject={reload}

@@ -6,6 +6,7 @@ import { Login } from '../features/Login.tsx';
 import { UserList } from '../features/UserList.tsx';
 import { ReferenceSettings } from '../features/ReferenceSettings.tsx';
 import { UserEditor } from '../features/UserEditor.tsx';
+import { ProjectReportPage } from '../features/ProjectReportPage.tsx';
 import { ProjectList } from '../features/ProjectList.tsx';
 import { NewProject, ProjectCard } from '../features/ProjectCard.tsx';
 import { NewTask, TaskCard } from '../features/TaskCard.tsx';
@@ -26,6 +27,7 @@ export function App() {
       <Route element={<ProjectAccess />}>
         <Route path="projects" element={<ProjectList />} />
         <Route path="projects/:id" element={<ProjectCard />} />
+        <Route path="projects/:id/report" element={<ProjectReportPage />} />
         <Route path="projects/new" element={<NewProject />} />
         <Route path="projects/:id/tasks/new" element={<NewTask />} />
         <Route path="tasks" element={<TaskList />} />

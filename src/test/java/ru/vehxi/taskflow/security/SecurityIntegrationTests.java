@@ -1,6 +1,12 @@
 package ru.vehxi.taskflow.security;
 
+import java.io.ByteArrayInputStream;
 import java.sql.DriverManager;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -571,6 +577,120 @@ class SecurityIntegrationTests {
     private org.springframework.test.web.servlet.ResultActions postJson(MockHttpSession session, String path, String body)
             throws Exception {
         return mvc.perform(post(path).session(session).with(csrf()).contentType("application/json").content(body));
+    }
+
+    @Test
+    void reportsOwnProjectProgressOverdueAndHistoricalTimeAndExportsTheSameTotals() throws Exception {
+        long owner = createUser("report-owner@example.test", "MANAGER");
+        long guest = createUser("report-other@example.test", "MANAGER");
+        long first = createUser("report-first@example.test", "EXECUTOR");
+        long second = createUser("report-second@example.test", "EXECUTOR");
+        jdbc.update("UPDATE users SET name = 'Первый' WHERE id = ?", first);
+        jdbc.update("UPDATE users SET name = '=Второй' WHERE id = ?", second);
+        var manager = login("report-owner@example.test");
+        var otherManager = login("report-other@example.test");
+        var executor = login("report-first@example.test");
+        String project = createProject(manager, owner, "=Проект отчёта");
+        String otherProject = createProject(otherManager, guest, "Чужой проект");
+        addMember(manager, project, first, 0).andExpect(status().isOk());
+        addMember(manager, project, second, 1).andExpect(status().isOk());
+        String report = project + "/report";
+        String excel = report + ".xlsx";
+
+        for (String path : java.util.List.of(report, excel, report + "/overdue")) {
+            mvc.perform(get(path).session(executor)).andExpect(status().isForbidden());
+            mvc.perform(get(path).session(otherManager)).andExpect(status().isNotFound());
+        }
+        mvc.perform(get(report)).andExpect(status().isUnauthorized());
+        mvc.perform(get(report + "/overdue").session(manager).param("size", "101")).andExpect(status().isBadRequest());
+        mvc.perform(get(report).session(manager)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.byStatus.NEW").value(0)).andExpect(jsonPath("$.byStatus.DONE").value(0))
+                .andExpect(jsonPath("$.progressPercent").value(0.0)).andExpect(jsonPath("$.overdueCount").value(0))
+                .andExpect(jsonPath("$.totalMinutes").value(0)).andExpect(jsonPath("$.tasksByAssignee").isEmpty())
+                .andExpect(jsonPath("$.minutesByAuthor").isEmpty());
+
+        var zone = ZoneId.of("Europe/Moscow");
+        var today = LocalDate.now(zone);
+        long projectId = Long.parseLong(project.substring(project.lastIndexOf('/') + 1));
+        long otherId = Long.parseLong(otherProject.substring(otherProject.lastIndexOf('/') + 1));
+        long oldest = reportTask(projectId, owner, second, "Просрочена", "NEW", today.minusDays(1));
+        reportTask(projectId, owner, first, "Срок сегодня", "IN_PROGRESS", today);
+        reportTask(projectId, owner, first, "Готова", "DONE", today.minusDays(1));
+        reportTask(projectId, owner, second, "Тоже готова", "DONE", today.minusDays(1));
+        long cancelled = reportTask(projectId, owner, first, "Отменена", "CANCELLED", today.minusDays(2));
+        reportTask(otherId, guest, first, "Чужая задача", "NEW", today.minusDays(1));
+
+        jdbc.update("""
+                INSERT INTO time_entries (task_id, author_id, work_date, minutes)
+                VALUES (?, ?, ?, 30), (?, ?, ?, 45), (?, ?, ?, 15)
+                """, oldest, first, today, oldest, first, today, cancelled, second, today);
+        jdbc.update("INSERT INTO comments (task_id, author_id, body) VALUES (?, ?, 'a'), (?, ?, 'b')",
+                oldest, first, oldest, second);
+
+        var result = mvc.perform(get(report).session(manager)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.project.name").value("=Проект отчёта"))
+                .andExpect(jsonPath("$.byStatus.NEW").value(1)).andExpect(jsonPath("$.byStatus.IN_PROGRESS").value(1))
+                .andExpect(jsonPath("$.byStatus.DONE").value(2)).andExpect(jsonPath("$.byStatus.CANCELLED").value(1))
+                .andExpect(jsonPath("$.progressPercent").value(50.0)).andExpect(jsonPath("$.overdueCount").value(1))
+                .andExpect(jsonPath("$.totalMinutes").value(90)).andReturn().getResponse().getContentAsByteArray();
+        var json = new tools.jackson.databind.json.JsonMapper().readTree(result);
+        assertThat(OffsetDateTime.parse(json.path("generatedAt").asString()).getOffset())
+                .isEqualTo(zone.getRules().getOffset(java.time.Instant.now()));
+        for (var row : json.path("tasksByAssignee")) {
+            long assigneeId = row.path("userId").asLong();
+            assertThat(assigneeId).isIn(first, second);
+            assertThat(row.path("taskCount").asLong()).isEqualTo(assigneeId == first ? 3 : 2);
+        }
+        assertThat(json.path("tasksByAssignee").size()).isEqualTo(2);
+        for (var row : json.path("minutesByAuthor")) {
+            long authorId = row.path("userId").asLong();
+            assertThat(authorId).isIn(first, second);
+            assertThat(row.path("minutes").asLong()).isEqualTo(authorId == first ? 75 : 15);
+        }
+        assertThat(json.path("minutesByAuthor").size()).isEqualTo(2);
+
+        mvc.perform(get(report + "/overdue").session(manager)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1)).andExpect(jsonPath("$.items[0].id").value(oldest))
+                .andExpect(jsonPath("$.items[0].assigneeName").value("=Второй"));
+        mvc.perform(get(report + "/overdue").session(manager).param("page", "1")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1)).andExpect(jsonPath("$.items").isEmpty());
+
+        String xlsx = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        byte[] bytes = mvc.perform(get(excel).session(manager).accept(xlsx))
+                .andExpect(status().isOk()).andExpect(content().contentType(xlsx))
+                .andExpect(header().string("Content-Disposition", "attachment; filename=\"taskflow-project-" + projectId + ".xlsx\""))
+                .andReturn().getResponse().getContentAsByteArray();
+        try (var workbook = WorkbookFactory.create(new ByteArrayInputStream(bytes))) {
+            var sheet = workbook.getSheetAt(0);
+            var projectCell = sheet.getRow(1).getCell(1);
+            assertThat(projectCell.getCellType()).isEqualTo(CellType.STRING);
+            assertThat(projectCell.getStringCellValue()).isEqualTo("=Проект отчёта");
+            assertThat(sheet.getRow(2).getCell(1).getLocalDateTimeCellValue().toLocalDate()).isEqualTo(today);
+            var progress = sheet.getRow(4).getCell(1);
+            assertThat(progress.getNumericCellValue()).isEqualTo(0.5);
+            assertThat(progress.getCellStyle().getDataFormatString()).isEqualTo("0.0%");
+            assertThat(sheet.getRow(5).getCell(1).getNumericCellValue()).isEqualTo(1);
+            assertThat(sheet.getRow(6).getCell(1).getNumericCellValue()).isEqualTo(90);
+            assertThat(sheet.getRow(11).getCell(1).getNumericCellValue()).isEqualTo(2);
+            var assignees = new java.util.HashMap<String, Double>();
+            var authors = new java.util.HashMap<String, Double>();
+            for (int row : new int[]{15, 16}) {
+                assignees.put(sheet.getRow(row).getCell(0).getStringCellValue(), sheet.getRow(row).getCell(1).getNumericCellValue());
+            }
+            for (int row : new int[]{19, 20}) {
+                authors.put(sheet.getRow(row).getCell(0).getStringCellValue(), sheet.getRow(row).getCell(1).getNumericCellValue());
+            }
+            assertThat(assignees).containsExactlyInAnyOrderEntriesOf(java.util.Map.of("Первый", 3.0, "=Второй", 2.0));
+            assertThat(authors).containsExactlyInAnyOrderEntriesOf(java.util.Map.of("Первый", 75.0, "=Второй", 15.0));
+        }
+    }
+
+    private long reportTask(long projectId, long owner, long assignee, String title, String status, LocalDate deadline) {
+        return jdbc.queryForObject("""
+                INSERT INTO tasks (project_id, author_id, assignee_id, type_id, priority_id, title, status, due_date)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
+                """, Long.class, projectId, owner, assignee, referenceId("task_types", "Задача"),
+                referenceId("task_priorities", "Обычный"), title, status, deadline);
     }
 
     private static String statusCommand(String target, long version) {

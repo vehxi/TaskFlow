@@ -37,12 +37,29 @@ export class ApiClient {
   }
 
   async request<T>(path: string, options: RequestInit = {}): Promise<T> {
+    const response = await this.send(path, 'application/json', options);
+    if (response.status === 204) return undefined as T;
+    if (!response.headers.get('Content-Type')?.includes('application/json')) {
+      throw new Error('Сервер вернул неожиданный ответ. Обновите страницу.');
+    }
+    return response.json() as Promise<T>;
+  }
+
+  async download(path: string, contentType: string, signal?: AbortSignal): Promise<Blob> {
+    const response = await this.send(path, `${contentType}, application/json`, { signal });
+    if (response.headers.get('Content-Type')?.split(';')[0] !== contentType) {
+      throw new Error('Сервер не вернул файл нужного формата.');
+    }
+    return response.blob();
+  }
+
+  private async send(path: string, accept: string, options: RequestInit): Promise<Response> {
     if (!path.startsWith('/api/') || path.startsWith('//') || path.includes('\\')) {
       throw new Error('Only relative API paths are supported.');
     }
     const method = (options.method ?? 'GET').toUpperCase();
     const headers = new Headers(options.headers);
-    headers.set('Accept', 'application/json');
+    headers.set('Accept', accept);
     if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
       const csrf = await this.getCsrf();
       headers.set(csrf.headerName, csrf.token);
@@ -64,11 +81,7 @@ export class ApiClient {
       if (failure.code === 'CSRF_INVALID') this.resetCsrf();
       throw failure;
     }
-    if (response.status === 204) return undefined as T;
-    if (!response.headers.get('Content-Type')?.includes('application/json')) {
-      throw new Error('Сервер вернул неожиданный ответ. Обновите страницу.');
-    }
-    return response.json() as Promise<T>;
+    return response;
   }
 
   json<T>(path: string, method: 'POST' | 'PUT', body: unknown): Promise<T> {
