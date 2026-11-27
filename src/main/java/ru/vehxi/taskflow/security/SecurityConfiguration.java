@@ -35,16 +35,17 @@ public class SecurityConfiguration {
         http.authorizeHttpRequests(a -> a
                 .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.FORWARD, jakarta.servlet.DispatcherType.ERROR).permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/", "/login", "/admin/users", "/admin/users/new", "/admin/users/*", "/account",
-                        "/projects", "/projects/*", "/index.html", "/assets/**", "/favicon.svg", "/api/csrf").permitAll()
+                        "/projects", "/projects/*", "/projects/*/tasks/new", "/tasks", "/tasks/*", "/tasks/*/edit",
+                        "/index.html", "/assets/**", "/favicon.svg", "/api/csrf").permitAll()
                 .requestMatchers("/api/session", "/api/session/logout", "/error").permitAll()
                 .requestMatchers("/api/users", "/api/users/**").hasRole("ADMIN")
                 .requestMatchers("/api/assignable-users", "/api/projects/*/members", "/api/projects/*/members/*")
                     .hasRole("MANAGER")
-                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/projects").hasRole("MANAGER")
-                .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/projects/*").hasRole("MANAGER")
-                .requestMatchers("/api/projects", "/api/projects/**", "/api/tasks/**")
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/projects", "/api/projects/*/tasks").hasRole("MANAGER")
+                .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/projects/*", "/api/tasks/*").hasRole("MANAGER")
+                .requestMatchers("/api/projects", "/api/projects/**", "/api/tasks", "/api/tasks/**")
                     .hasAnyRole("MANAGER", "EXECUTOR")
-                .requestMatchers("/api/me").authenticated()
+                .requestMatchers("/api/me", "/api/reference-data").authenticated()
                 .anyRequest().denyAll())
             .formLogin(f -> f.loginPage("/login").loginProcessingUrl("/api/session").usernameParameter("email")
                 .successHandler((request, response, authentication) -> {

@@ -1,0 +1,120 @@
+.filters {
+  --field: var(--paper);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+  align-items: end;
+  gap: 16px;
+  padding: 20px;
+  background: var(--soft);
+  border-radius: var(--radius-control);
+  margin-bottom: 24px;
+}
+
+.filters label {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.filters input, .filters select { min-width: 0; width: 100%; min-height: 48px; }
+.dateControl { position: relative; display: block; min-inline-size: 0; }
+.dateControl > input { display: block; max-inline-size: 100%; }
+.dateDisplay { display: none; }
+
+/* Keep the iOS picker interactive without using its intrinsic width for the filter grid. */
+@supports (-webkit-touch-callout: none) {
+  .dateControl {
+    min-block-size: 48px;
+    overflow: hidden;
+    border-radius: var(--radius-control);
+    background: var(--field);
+  }
+  .dateControl > input {
+    position: absolute;
+    inset: 0;
+    block-size: 100%;
+    opacity: 0;
+  }
+  .dateControl:has(> input:focus-visible) { outline: 3px solid var(--focus); outline-offset: -3px; }
+  .dateDisplay {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-block-size: 48px;
+    gap: 6px;
+    padding-inline: 10px;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+    pointer-events: none;
+  }
+  .dateDisplay[data-empty="true"], .dateDisplay svg { color: var(--muted); }
+  .dateDisplay svg { flex: 0 0 16px; width: 16px; height: 16px; }
+}
+.filterActions { display: flex; flex-wrap: wrap; gap: 8px; }
+.filterToggle { display: none; }
+
+.list { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--line); }
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto) auto;
+  gap: 16px;
+  align-items: center;
+  min-height: 76px;
+  padding: 14px 8px;
+  border-bottom: 1px solid var(--line);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.row small { display: block; color: var(--muted); margin-top: 4px; }
+.rowMeta { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 12px; color: var(--muted); }
+.row > svg { color: var(--muted); }
+
+.heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px 24px;
+  margin: 0 0 28px;
+  overflow-wrap: anywhere;
+}
+
+.description { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 68ch; margin: 0 0 28px; }
+
+.projectLinks { display: flex; flex-wrap: wrap; gap: 10px; margin-block: 24px; }
+
+@media (hover: hover) {
+  .row:hover { background: var(--hover); }
+}
+
+@media (max-width: 760px) {
+  .listHeading {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .listHeading h1 { margin: 0; }
+  .listHeading > a { display: none; }
+  .filterToggle { display: inline-flex; align-items: center; gap: 8px; border: 0; }
+  .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 14px; }
+  .filterPanel { display: grid; grid-template-rows: 0fr; opacity: 0; visibility: hidden; }
+  .filterPanel[data-expanded="true"] { grid-template-rows: 1fr; opacity: 1; visibility: visible; }
+  .filterPanel[data-expanded="false"] { interactivity: inert; pointer-events: none; }
+  .filterBody { min-block-size: 0; overflow: clip; }
+  .filterActions { grid-column: 1 / -1; }
+  .row { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
+  .rowMeta { grid-column: 1; grid-row: 2; }
+  .row > svg { grid-column: 2; grid-row: 1; }
+}
+
+@media (max-width: 760px) and (prefers-reduced-motion: no-preference) {
+  .filterPanel[data-animate="true"] {
+    transition: grid-template-rows 150ms var(--ease-out), opacity 150ms var(--ease-out), visibility 0s 150ms;
+  }
+  .filterPanel[data-animate="true"][data-expanded="true"] { transition-delay: 0s; }
+}

@@ -65,8 +65,10 @@ class DatabaseMigrationTests {
     @Test
     void migrationsCanRunAgainWithoutDuplicatingData() {
         flyway.migrate();
-        assertThat(flyway.info().applied()).hasSize(2);
+        assertThat(flyway.info().applied()).hasSize(3);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM roles", Long.class)).isEqualTo(3L);
+        assertThat(jdbc.queryForList("SELECT name FROM task_types", String.class)).contains("Задача", "Ошибка", "Улучшение");
+        assertThat(jdbc.queryForList("SELECT name FROM task_priorities", String.class)).contains("Низкий", "Обычный", "Высокий");
     }
 
     @Test

@@ -73,11 +73,13 @@ public class ProjectApiController {
      * @param id project identity
      * @param page zero-based page
      * @param size page capacity
+     * @param assignableOnly whether to limit the list to active executors
      * @return members and project version */
     @GetMapping("/projects/{id}/members")
     public ProjectMembersPage members(@AuthenticationPrincipal TaskFlowPrincipal actor, @PathVariable @Positive Long id,
-            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
-        return projects.members(actor.getId(), id, page, size);
+            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "false") boolean assignableOnly) {
+        return projects.members(actor.getId(), id, page, size, assignableOnly);
     }
 
     /** Returns active executors eligible for selection.

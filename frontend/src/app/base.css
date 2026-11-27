@@ -25,6 +25,7 @@
   color-scheme: light;
   --canvas: oklch(0.985 0 0);
   --paper: oklch(1 0 0);
+  --field: oklch(0.935 0 0);
   --ink: oklch(0.24 0 0);
   --muted: oklch(0.49 0 0);
   --sidebar: oklch(0.945 0 0);
@@ -40,6 +41,8 @@
   --radius-small: 4px;
   --radius-control: 8px;
   --radius-panel: 12px;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Cpath d='m3 5 4 4 4-4' fill='none' stroke='%23757575' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   color: var(--ink);
   background: var(--canvas);
 }
@@ -47,6 +50,7 @@
   color-scheme: dark;
   --canvas: oklch(0.18 0 0);
   --paper: oklch(0.24 0 0);
+  --field: oklch(0.27 0 0);
   --ink: oklch(0.92 0 0);
   --muted: oklch(0.68 0 0);
   --sidebar: oklch(0.215 0 0);
@@ -62,7 +66,7 @@
 }
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; }
-button, input, select { font: inherit; }
+button, input, select, textarea { font: inherit; }
 button, a, input, select { touch-action: manipulation; }
 a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 4px; }
 button, a { -webkit-tap-highlight-color: transparent; }
@@ -78,9 +82,90 @@ p { line-height: 1.6; text-wrap: pretty; }
 h1 { font-size: clamp(28px, 2.5vw, 36px); line-height: 1.1; letter-spacing: -0.022em; font-weight: 750; margin-bottom: 20px; }
 h2 { font-size: 20px; letter-spacing: -0.012em; font-weight: 750; }
 fieldset { min-width: 0; border: 0; padding: 0; margin: 0; }
-input:not([type="checkbox"]) { width: 100%; min-height: 48px; padding: 11px 14px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--paper); color: var(--ink); }
-input[aria-invalid="true"] { border-color: var(--ink); }
+input:not([type="checkbox"]), select, textarea {
+  border: 0;
+  border-radius: var(--radius-control);
+  background-color: var(--field);
+  color: var(--ink);
+}
+input:not([type="checkbox"]), textarea { width: 100%; min-height: 48px; padding: 11px 14px; }
+textarea { resize: vertical; }
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offset: -3px; }
+:is(input, select, textarea)[aria-invalid="true"] { box-shadow: inset 0 -2px var(--ink); }
 input[type="checkbox"] { width: 19px; height: 19px; accent-color: var(--accent); flex-shrink: 0; }
 @media (prefers-reduced-motion: reduce) { button, a { transition: none; } button:active:not(:disabled), a:active { transform: none; } }
 
-select { color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-control); min-height: 40px; padding: 8px 30px 8px 12px; font: inherit; cursor: pointer; }
+select {
+  appearance: none;
+  min-height: 40px;
+  padding: 8px 36px 8px 14px;
+  background-image: var(--select-chevron);
+  background-repeat: no-repeat;
+  background-position: right 13px center;
+  cursor: pointer;
+}
+select:disabled { cursor: default; opacity: 0.5; }
+
+@supports (appearance: base-select) and selector(::picker(select)) {
+  select, select::picker(select) { appearance: base-select; }
+  select {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding-inline-end: 13px;
+    background-image: none;
+  }
+  select::picker-icon {
+    content: "";
+    flex: 0 0 14px;
+    width: 14px;
+    height: 14px;
+    margin-block: auto;
+    background-color: var(--muted);
+    mask: var(--select-chevron) center / contain no-repeat;
+  }
+  select:open::picker-icon { rotate: 180deg; }
+  select::picker(select) {
+    max-block-size: min(20rem, 55dvh);
+    margin-block: 5px;
+    padding: 4px;
+    border: 0;
+    border-radius: var(--radius-control);
+    background-color: var(--paper);
+    color: var(--ink);
+    box-shadow: 0 5px 20px rgb(0 0 0 / 0.22);
+  }
+  select option {
+    min-height: 40px;
+    padding: 8px 10px;
+    gap: 8px;
+    align-items: center;
+    border-radius: var(--radius-small);
+    white-space: normal;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+  }
+  select option:checked { background-color: var(--selected); font-weight: 650; }
+  select option:focus-visible { outline-offset: -3px; }
+  @media (hover: hover) and (pointer: fine) {
+    select option:not(:checked):hover { background-color: var(--hover); }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    select:not(:focus-visible, :has(option:focus-visible))::picker-icon {
+      transition: rotate 150ms var(--ease-out);
+    }
+    select::picker(select) { opacity: 0; pointer-events: none; }
+    select:open::picker(select) { opacity: 1; pointer-events: auto; }
+    select:not(:focus-visible, :has(option:focus-visible))::picker(select) {
+      transition: opacity 150ms var(--ease-out), display 150ms allow-discrete, overlay 150ms allow-discrete;
+    }
+    @starting-style {
+      select:open:not(:focus-visible, :has(option:focus-visible))::picker(select) { opacity: 0; }
+    }
+  }
+}
+
+@media (forced-colors: active) {
+  select { appearance: auto; background-image: none; }
+  select::picker(select) { appearance: auto; }
+}

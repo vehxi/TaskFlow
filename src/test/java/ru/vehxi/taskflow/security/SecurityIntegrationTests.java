@@ -308,6 +308,117 @@ class SecurityIntegrationTests {
         assertThat(jdbc.queryForObject("SELECT assignee_id FROM tasks WHERE id = ?", Long.class, task)).isEqualTo(executor);
     }
 
+    @Test
+    void taskAssignmentAndFiltersFollowTheCurrentExecutorAndProjectOwner() throws Exception {
+        long owner = createUser("owner@example.test", "MANAGER");
+        long otherManager = createUser("other-manager@example.test", "MANAGER");
+        long first = createUser("first@example.test", "EXECUTOR");
+        long second = createUser("second@example.test", "EXECUTOR");
+        var manager = login("owner@example.test");
+        var foreign = login("other-manager@example.test");
+        var firstSession = login("first@example.test");
+        var secondSession = login("second@example.test");
+        String project = createProject(manager, owner, "Owner project");
+        String foreignProject = createProject(foreign, otherManager, "Foreign project");
+        addMember(manager, project, first, 0).andExpect(status().isOk());
+        addMember(manager, project, second, 1).andExpect(status().isOk());
+        addMember(foreign, foreignProject, first, 0).andExpect(status().isOk());
+        long type = referenceId("task_types", "Задача");
+        long priority = referenceId("task_priorities", "Обычный");
+        String command = taskCommand(first, "2026-12-09", type, priority);
+        String task = mvc.perform(post(project + "/tasks").session(manager).with(csrf())
+                        .contentType("application/json").content(command))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.data.authorId").value(owner))
+                .andExpect(jsonPath("$.data.status").value("NEW")).andExpect(jsonPath("$.data.dueDate").value("2026-12-09"))
+                .andExpect(jsonPath("$.data.version").value(0)).andReturn().getResponse().getHeader("Location");
+        mvc.perform(post(foreignProject + "/tasks").session(foreign).with(csrf()).contentType("application/json").content(command))
+                .andExpect(status().isCreated());
+        mvc.perform(get(task).session(firstSession)).andExpect(status().isOk());
+        mvc.perform(get(task).session(secondSession)).andExpect(status().isNotFound());
+        mvc.perform(get(task).session(foreign)).andExpect(status().isNotFound());
+        mvc.perform(put(task).session(firstSession).with(csrf()).contentType("application/json")
+                .content(withVersion(command, 0))).andExpect(status().isForbidden());
+        mvc.perform(get("/api/tasks").session(manager).param("status", "NEW").param("dueFrom", "2026-12-08")
+                .param("dueTo", "2026-12-09").param("assigneeId", String.valueOf(first)).param("size", "1"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.items[0].projectName").value("Owner project"));
+        mvc.perform(get("/api/tasks").session(manager).param("dueFrom", "2026-12-10"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));
+        mvc.perform(get("/api/tasks").session(firstSession).param("assigneeId", String.valueOf(second)))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/tasks/filter-options").session(firstSession))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.projects.length()").value(2))
+                .andExpect(jsonPath("$.assignees.length()").value(0));
+        mvc.perform(get("/api/tasks/filter-options").session(manager))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.projects.length()").value(1))
+                .andExpect(jsonPath("$.assignees[0].id").value(first));
+
+        String replacement = withVersion(taskCommand(second, "2026-12-10", type, priority), 0);
+        mvc.perform(put(task).session(manager).with(csrf()).contentType("application/json").content(replacement))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.assigneeId").value(second))
+                .andExpect(jsonPath("$.data.dueDate").value("2026-12-10")).andExpect(jsonPath("$.data.authorId").value(owner))
+                .andExpect(jsonPath("$.data.status").value("NEW")).andExpect(jsonPath("$.data.version").value(1));
+        mvc.perform(put(task).session(manager).with(csrf()).contentType("application/json").content(replacement))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("STALE_VERSION"));
+        mvc.perform(get(task).session(firstSession)).andExpect(status().isNotFound());
+        mvc.perform(get(task).session(secondSession)).andExpect(status().isOk());
+        mvc.perform(get("/api/tasks").session(firstSession)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1)).andExpect(jsonPath("$.items[0].projectName").value("Foreign project"));
+    }
+
+    @Test
+    void taskCommandsRejectInvalidDatesInactiveReferencesAndIneligibleAssignees() throws Exception {
+        long owner = createUser("owner@example.test", "MANAGER");
+        long executor = createUser("executor@example.test", "EXECUTOR");
+        long outsider = createUser("outsider@example.test", "EXECUTOR");
+        var manager = login("owner@example.test");
+        String project = createProject(manager, owner, "Assignment checks");
+        addMember(manager, project, executor, 0).andExpect(status().isOk());
+        long type = jdbc.queryForObject("INSERT INTO task_types (name) VALUES ('Test type') RETURNING id", Long.class);
+        long priority = referenceId("task_priorities", "Обычный");
+        for (String date : java.util.List.of("2026-02-30", "0000-02-01", "26-12-09")) {
+            mvc.perform(post(project + "/tasks").session(manager).with(csrf()).contentType("application/json")
+                    .content(taskCommand(executor, date, type, priority))).andExpect(status().isBadRequest());
+        }
+        mvc.perform(post(project + "/tasks").session(manager).with(csrf()).contentType("application/json")
+                .content(taskCommand(outsider, "2026-12-09", type, priority))).andExpect(status().isConflict());
+        mvc.perform(get("/api/tasks").session(manager).param("status", "INVALID")).andExpect(status().isBadRequest());
+        mvc.perform(get("/api/tasks").session(manager).param("dueFrom", "2026-12-10").param("dueTo", "2026-12-09"))
+                .andExpect(status().isBadRequest());
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM tasks", Long.class)).isZero();
+
+        String command = taskCommand(executor, "2026-12-09", type, priority);
+        String task = mvc.perform(post(project + "/tasks").session(manager).with(csrf()).contentType("application/json").content(command))
+                .andExpect(status().isCreated()).andReturn().getResponse().getHeader("Location");
+        jdbc.update("UPDATE task_types SET active = false WHERE id = ?", type);
+        jdbc.update("UPDATE users SET active = false WHERE id = ?", executor);
+        mvc.perform(get(project + "/members").session(manager).param("assignableOnly", "true"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));
+        mvc.perform(post(project + "/tasks").session(manager).with(csrf()).contentType("application/json")
+                .content(command)).andExpect(status().isConflict());
+        mvc.perform(put(task).session(manager).with(csrf()).contentType("application/json")
+                .content(withVersion(taskCommand(executor, "2026-12-10", type, priority), 0)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.version").value(1));
+        jdbc.update("UPDATE tasks SET status = 'DONE'");
+        mvc.perform(put(task).session(manager).with(csrf()).contentType("application/json")
+                .content(withVersion(command, 1))).andExpect(status().isConflict());
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM tasks", Long.class)).isEqualTo(1L);
+    }
+
+    private long referenceId(String table, String name) {
+        return jdbc.queryForObject("SELECT id FROM " + table + " WHERE name = ?", Long.class, name);
+    }
+
+    private static String taskCommand(long executor, String date, long type, long priority) {
+        return """
+                {"title":"Release task","description":"Prepare review","assigneeId":%d,"dueDate":"%s","typeId":%d,"priorityId":%d}
+                """.formatted(executor, date, type, priority).strip();
+    }
+
+    private static String withVersion(String command, long version) {
+        return command.substring(0, command.length() - 1) + ",\"expectedVersion\":" + version + "}";
+    }
+
     private String createProject(MockHttpSession session, long manager, String name) throws Exception {
         return mvc.perform(post("/api/projects").session(session).with(csrf()).contentType("application/json")
                         .content("{\"name\":\"" + name + "\"}"))

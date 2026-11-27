@@ -9,6 +9,7 @@ import { Notice } from '../app/ui.tsx';
 import styles from '../app/App.module.css';
 import projectStyles from './Projects.module.css';
 import { MembersPanel } from './ProjectMembers.tsx';
+import taskStyles from './Tasks.module.css';
 
 export function NewProject() {
   const { user } = useSession();
@@ -80,6 +81,10 @@ function Card({ id }: { id: string }) {
         }} cancel={<button type="button" className={styles.secondary} onClick={() => setEditing(false)}>Отмена</button>} />
           : <>
             {project.description && <p className={projectStyles.description}>{project.description}</p>}
+            <div className={taskStyles.projectLinks}>
+              <Link className={styles.secondary} to={`/tasks?projectId=${project.id}`}>Задачи проекта</Link>
+              {canManage && <Link className={styles.primary} to={`/projects/${project.id}/tasks/new`}>Новая задача</Link>}
+            </div>
             {canManage && <MembersPanel project={project} reloadProject={reload}
               onSaved={(version, message) => {
                 setProject({ ...project, version });
@@ -140,7 +145,7 @@ function ProjectForm({ project, submit, cancel, reload }: {
             {fields.name && <span className={styles.fieldError} id="project-name-error">{fields.name.join(' ')}</span>}
           </label>
           <label>Описание
-            <textarea className={projectStyles.textarea} name="description" defaultValue={project?.description}
+            <textarea name="description" defaultValue={project?.description}
               rows={5} maxLength={10000} aria-invalid={Boolean(fields.description)}
               aria-describedby={fields.description ? 'project-description-error' : undefined} />
             {fields.description && <span className={styles.fieldError} id="project-description-error">{fields.description.join(' ')}</span>}

@@ -7,6 +7,8 @@ import { UserList } from '../features/UserList.tsx';
 import { UserEditor } from '../features/UserEditor.tsx';
 import { ProjectList } from '../features/ProjectList.tsx';
 import { NewProject, ProjectCard } from '../features/ProjectCard.tsx';
+import { NewTask, TaskCard } from '../features/TaskCard.tsx';
+import { TaskList } from '../features/TaskList.tsx';
 import styles from './App.module.css';
 import { ThemeControl } from './theme.tsx';
 import { Brand, Notice, Icon } from './ui.tsx';
@@ -24,6 +26,10 @@ export function App() {
         <Route path="projects" element={<ProjectList />} />
         <Route path="projects/:id" element={<ProjectCard />} />
         <Route path="projects/new" element={<NewProject />} />
+        <Route path="projects/:id/tasks/new" element={<NewTask />} />
+        <Route path="tasks" element={<TaskList />} />
+        <Route path="tasks/:id" element={<TaskCard />} />
+        <Route path="tasks/:id/edit" element={<TaskCard editing />} />
       </Route>
       <Route element={<Administrator />}>
         <Route path="admin/users" element={<UserList />} />
@@ -40,7 +46,7 @@ function Workspace() {
   const [error, setError] = useState('');
   const location = useLocation();
   if (!user) return <Navigate replace to="/login" />;
-  const area = location.pathname.startsWith('/projects') ? 'Проекты'
+  const area = location.pathname.startsWith('/tasks') ? 'Задачи' : location.pathname.startsWith('/projects') ? 'Проекты'
     : location.pathname.startsWith('/admin/users') ? 'Пользователи' : 'Учётная запись';
   async function logout() {
     setLeaving(true); setError('');
@@ -51,15 +57,21 @@ function Workspace() {
     <a href="#workspace-content" className={styles.skip}>К содержимому</a>
     <aside className={styles.sidebar}>
       <NavLink to="/" className={styles.brandLink} aria-label="TaskFlow — главная"><Brand /></NavLink>
+      <div className={styles.mobileTheme}><ThemeControl /></div>
       <p className={styles.navLabel}>Рабочее пространство</p>
       <nav aria-label="Основная навигация">
         {user.roles.includes('ADMIN') && <NavLink className={({ isActive }) => isActive ? styles.selected : styles.navItem} to="/admin/users"><Icon name="users" />Пользователи</NavLink>}
         {canViewProjects(user) && <NavLink className={({ isActive }) => isActive ? styles.selected : styles.navItem} to="/projects"><Icon name="projects" />Проекты</NavLink>}
-        <NavLink className={({ isActive }) => isActive ? styles.selected : styles.navItem} to="/account"><Icon name="account" />Моя учётная запись</NavLink>
+        {canViewProjects(user) && <NavLink className={({ isActive }) => isActive ? styles.selected : styles.navItem} to="/tasks"><Icon name="tasks" />Задачи</NavLink>}
+        <NavLink className={({ isActive }) => isActive ? styles.selected : styles.navItem} to="/account">
+          <Icon name="account" /><span className={styles.desktopAccountLabel}>Моя учётная запись</span>
+          <span className={styles.mobileAccountLabel}>Профиль</span>
+        </NavLink>
       </nav>
       <div className={styles.sidebarSpacer} />
       <div className={styles.profile}><span className={styles.avatar} aria-hidden="true">{user.name.slice(0, 1).toUpperCase()}</span><div><strong>{user.name}</strong><small>{user.roles.map(role => roleNames[role]).join(', ')}</small></div></div>
-      <button className={styles.logout} disabled={leaving} onClick={() => void logout()}><Icon name="logout" />{leaving ? 'Выход…' : 'Выйти'}</button>
+      <button className={styles.logout} aria-label={leaving ? 'Выход…' : 'Выйти'} title="Выйти"
+        disabled={leaving} onClick={() => void logout()}><Icon name="logout" /><span>{leaving ? 'Выход…' : 'Выйти'}</span></button>
     </aside>
     <div className={styles.main}>
       <header className={styles.topbar}><span>Команда / {area}</span><ThemeControl /></header>
@@ -74,7 +86,7 @@ function Administrator() {
 }
 function ProjectAccess() {
   const { user } = useSession();
-  return user && canViewProjects(user) ? <Outlet /> : <section><h1>Нет доступа к проектам</h1><NavLink to="/account">К учётной записи</NavLink></section>;
+  return user && canViewProjects(user) ? <Outlet /> : <section><h1>Нет доступа к проектам и задачам</h1><NavLink to="/account">К учётной записи</NavLink></section>;
 }
 function Account() {
   const { user } = useSession();

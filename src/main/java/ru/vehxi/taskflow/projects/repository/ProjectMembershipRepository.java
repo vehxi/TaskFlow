@@ -13,4 +13,14 @@ public interface ProjectMembershipRepository extends JpaRepository<ProjectMember
      * @return participant accounts */
     @Query("select u from ProjectMembership m join m.user u where m.id.projectId = :projectId")
     Page<User> findUsers(@Param("projectId") Long projectId, Pageable pageable);
+
+    /** Returns active executors in a project.
+     * @param projectId project key
+     * @param pageable stable pagination
+     * @return eligible participants */
+    @Query("""
+            select u from ProjectMembership m join m.user u join u.roles r
+            where m.id.projectId = :projectId and u.active = true and r.code = ru.vehxi.taskflow.users.domain.RoleCode.EXECUTOR
+            """)
+    Page<User> findAssignableUsers(@Param("projectId") Long projectId, Pageable pageable);
 }

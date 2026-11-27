@@ -12,3 +12,34 @@ export interface MembershipChange { projectVersion: number }
 export type ProjectMembers = Page<ProjectMember> & MembershipChange;
 export interface CsrfToken { token: string; headerName: string }
 export interface ApiErrorBody { code: string; message: string; fieldErrors: Record<string, string[]>; requestId: string }
+
+export type TaskStatus = 'NEW' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
+export interface TaskFields {
+  title: string;
+  description: string;
+  assigneeId: number;
+  dueDate: string;
+  typeId: number;
+  priorityId: number;
+}
+export interface TaskSummary {
+  id: number;
+  projectId: number;
+  projectName: string;
+  title: string;
+  dueDate: string;
+  status: TaskStatus;
+  assigneeId: number;
+  assigneeName: string;
+  version: number;
+}
+export interface TaskDetail extends TaskSummary, TaskFields {
+  managerId: number;
+  authorId: number;
+  authorName: string;
+  typeName: string;
+  priorityName: string;
+}
+export interface TaskFilterOptions { projects: ProjectMember[]; assignees: ProjectMember[] }
+export interface ReferenceValue extends ProjectMember { active: boolean; version: number }
+export interface ReferenceData { types: ReferenceValue[]; priorities: ReferenceValue[] }

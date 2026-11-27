@@ -1,52 +1,61 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useLayoutEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import styles from './App.module.css';
 import { Icon } from './ui.tsx';
 
-type Preference = 'light' | 'dark' | 'system';
+type Theme = 'light' | 'dark';
 const storageKey = 'taskflow.theme';
-const Context = createContext<{ preference: Preference; choose: (value: Preference) => void } | null>(null);
-function savedPreference(): Preference {
+const themeQuery = '(prefers-color-scheme: dark)';
+const Context = createContext<{ current: Theme; toggle: () => void } | null>(null);
+
+function savedTheme(): Theme | null {
   try {
     const saved = localStorage.getItem(storageKey);
     if (saved === 'light' || saved === 'dark') return saved;
-  } catch { /* A blocked browser store still permits an in-memory preference. */ }
-  return 'system';
+  } catch { /* The in-memory theme still works when storage is unavailable. */ }
+  return null;
 }
-function apply(preference: Preference) {
-  const dark = preference === 'dark' || (preference === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
-  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#141414' : '#fafafa');
-}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [preference, setPreference] = useState<Preference>(savedPreference);
+  const [override, setOverride] = useState(savedTheme);
+  const [systemDark, setSystemDark] = useState(() => matchMedia(themeQuery).matches);
+  const current = override ?? (systemDark ? 'dark' : 'light');
+
+  useLayoutEffect(() => {
+    document.documentElement.dataset.theme = current;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', current === 'dark' ? '#141414' : '#fafafa');
+  }, [current]);
+
   useEffect(() => {
-    const media = matchMedia('(prefers-color-scheme: dark)');
-    const change = () => apply(preference);
-    change(); media.addEventListener('change', change);
-    return () => media.removeEventListener('change', change);
-  }, [preference]);
-  useEffect(() => {
-    const sync = (event: StorageEvent) => {
-      if (event.key === storageKey || event.key === null) setPreference(savedPreference());
+    const media = matchMedia(themeQuery);
+    const onSystemChange = () => setSystemDark(media.matches);
+    const onStorageChange = (event: StorageEvent) => {
+      if (event.key === storageKey || event.key === null) setOverride(savedTheme());
     };
-    window.addEventListener('storage', sync);
-    return () => window.removeEventListener('storage', sync);
+    onSystemChange();
+    media.addEventListener('change', onSystemChange);
+    window.addEventListener('storage', onStorageChange);
+    return () => {
+      media.removeEventListener('change', onSystemChange);
+      window.removeEventListener('storage', onStorageChange);
+    };
   }, []);
-  function choose(value: Preference) {
-    apply(value); setPreference(value);
-    try { localStorage.setItem(storageKey, value); } catch { /* Keep the current session usable. */ }
+
+  function toggle() {
+    const next = current === 'dark' ? 'light' : 'dark';
+    setOverride(next);
+    try { localStorage.setItem(storageKey, next); } catch { /* Keep the current session usable. */ }
   }
-  return <Context.Provider value={{ preference, choose }}>{children}</Context.Provider>;
+
+  return <Context.Provider value={{ current, toggle }}>{children}</Context.Provider>;
 }
+
 export function ThemeControl() {
   const theme = useContext(Context);
   if (!theme) return null;
-  return <label className={styles.themeControl}>
-    <Icon name={theme.preference === 'system' ? 'monitor' : theme.preference === 'dark' ? 'moon' : 'sun'} />
-    <span className={styles.srOnly}>Тема оформления</span>
-    <select value={theme.preference} onChange={event => theme.choose(event.target.value as Preference)}>
-      <option value="system">Как в системе</option><option value="light">Светлая тема</option><option value="dark">Тёмная тема</option>
-    </select>
-  </label>;
+  const isDark = theme.current === 'dark';
+  const action = isDark ? 'Включить светлую тему' : 'Включить тёмную тему';
+  return <button type="button" className={styles.themeControl} aria-label={action} title={action} onClick={theme.toggle}>
+    <Icon name={isDark ? 'sun' : 'moon'} />
+  </button>;
 }

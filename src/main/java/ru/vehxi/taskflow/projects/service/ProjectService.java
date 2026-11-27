@@ -73,12 +73,14 @@ public class ProjectService {
      * @param id project identity
      * @param page zero-based page
      * @param size page capacity
+     * @param assignableOnly whether to return active executors only
      * @return participant page */
-    public ProjectMembersPage members(Long actorId, Long id, int page, int size) {
+    public ProjectMembersPage members(Long actorId, Long id, int page, int size, boolean assignableOnly) {
         requireManager(users.findWithRolesById(actorId).orElse(null));
         Project project = owned(projects.findById(id).orElse(null), actorId);
-        return ProjectMembersPage.from(members.findUsers(id, pageRequest(page, size)).map(ProjectMemberDto::from),
-                project.getVersion());
+        var pagination = pageRequest(page, size);
+        var pageOfUsers = assignableOnly ? members.findAssignableUsers(id, pagination) : members.findUsers(id, pagination);
+        return ProjectMembersPage.from(pageOfUsers.map(ProjectMemberDto::from), project.getVersion());
     }
 
     /** Lists active executors for a manager.

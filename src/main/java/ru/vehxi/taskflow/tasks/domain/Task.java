@@ -115,4 +115,21 @@ public class Task extends VersionedCreatedEntity {
      * @return the status value
      */
     public TaskStatus getStatus() { return status; }
+
+    /** Changes the editable fields while keeping the project, author and status.
+     * @param title normalized title
+     * @param description normalized description
+     * @param assignee current executor
+     * @param dueDate calendar deadline
+     * @param type task type
+     * @param priority task priority */
+    public void updateDetails(String title, String description, User assignee, LocalDate dueDate,
+            TaskType type, TaskPriority priority) {
+        this.title = title;
+        this.description = description;
+        this.assignee = assignee;
+        this.dueDate = dueDate;
+        this.type = type;
+        this.priority = priority;
+    }
 }
