@@ -8,5 +8,10 @@ public enum TaskStatus {
     /** Done. */
     DONE,
     /** Cancelled. */
-    CANCELLED
+    CANCELLED;
+
+    /** {@return whether the task accepts changes} */
+    public boolean isOpen() {
+        return this == NEW || this == IN_PROGRESS;
+    }
 }

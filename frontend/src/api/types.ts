@@ -43,3 +43,23 @@ export interface TaskDetail extends TaskSummary, TaskFields {
 export interface TaskFilterOptions { projects: ProjectMember[]; assignees: ProjectMember[] }
 export interface ReferenceValue extends ProjectMember { active: boolean; version: number }
 export interface ReferenceData { types: ReferenceValue[]; priorities: ReferenceValue[] }
+
+export interface TaskComment {
+  id: number;
+  authorId: number;
+  authorName: string;
+  body: string;
+  createdAt: string;
+}
+export interface TaskTimeEntry {
+  id: number;
+  authorId: number;
+  authorName: string;
+  workDate: string;
+  minutes: number;
+  createdAt: string;
+}
+export interface TaskTimePage extends Page<TaskTimeEntry> {
+  totalMinutes: number;
+  today: string;
+}

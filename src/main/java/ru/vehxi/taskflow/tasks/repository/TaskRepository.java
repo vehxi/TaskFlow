@@ -25,6 +25,24 @@ public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificat
             """)
     Optional<Location> findOwnedLocation(@Param("id") Long id, @Param("managerId") Long managerId);
 
+    /** Finds the identities needed for ordered locks.
+     * @param id task key
+     * @param actorId owner or assignee key
+     * @return project and current assignee */
+    @Query("""
+            select t.project.id as projectId, t.assignee.id as assigneeId from Task t
+            where t.id = :id and (t.project.manager.id = :actorId or t.assignee.id = :actorId)
+            """)
+    Optional<Location> findActivityLocation(@Param("id") Long id, @Param("actorId") Long actorId);
+
+    /** Increments the parent version after adding a history entry.
+     * @param id task key
+     * @param version checked version
+     * @return affected row count */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update Task t set t.version = t.version + 1 where t.id = :id and t.version = :version")
+    int advanceVersion(@Param("id") Long id, @Param("version") long version);
+
     /** Lists projects represented in the visible task list.
      * @param actorId current account
      * @param manager whether ownership grants access

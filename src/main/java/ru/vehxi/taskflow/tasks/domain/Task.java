@@ -116,6 +116,14 @@ public class Task extends VersionedCreatedEntity {
      */
     public TaskStatus getStatus() { return status; }
 
+    /** Records an authorized status transition and its resulting assignee.
+     * @param status target status
+     * @param assignee current or replacement assignee */
+    public void transitionTo(TaskStatus status, User assignee) {
+        this.status = status;
+        this.assignee = assignee;
+    }
+
     /** Changes the editable fields while keeping the project, author and status.
      * @param title normalized title
      * @param description normalized description

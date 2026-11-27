@@ -19,6 +19,14 @@
 }
 
 .filters input, .filters select { min-width: 0; width: 100%; min-height: 48px; }
+.dateRange {
+  display: grid;
+  grid-column: span 2;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+  align-self: start;
+}
+.dateRange > p { grid-column: 1 / -1; margin: 0; }
 .dateControl { position: relative; display: block; min-inline-size: 0; }
 .dateControl > input { display: block; max-inline-size: 100%; }
 .dateDisplay { display: none; }
@@ -54,7 +62,7 @@
   .dateDisplay svg { flex: 0 0 16px; width: 16px; height: 16px; }
 }
 .filterActions { display: flex; flex-wrap: wrap; gap: 8px; }
-.filterToggle { display: none; }
+.mobileFilterActions { display: none; }
 
 .list { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--line); }
 .row {
@@ -74,14 +82,24 @@
 .row > svg { color: var(--muted); }
 
 .heading {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 14px 24px;
-  margin: 0 0 28px;
+  margin-bottom: 16px;
   overflow-wrap: anywhere;
 }
+.heading h1 { margin-bottom: 0; }
+.taskStatus { max-width: 650px; }
+.statusRow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+  align-items: end;
+  max-width: 650px;
+  margin-block: 20px 24px;
+}
+.assignment { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 0; min-width: 0; }
+.assignment > div { min-width: 0; }
+.assignment dt { color: var(--muted); font-size: 12px; }
+.assignment dd { margin: 2px 0 0; overflow-wrap: anywhere; font-size: 14px; }
 
 .description { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 68ch; margin: 0 0 28px; }
 
@@ -100,8 +118,13 @@
   }
   .listHeading h1 { margin: 0; }
   .listHeading > a { display: none; }
-  .filterToggle { display: inline-flex; align-items: center; gap: 8px; border: 0; }
+  .mobileFilterActions { display: flex; flex-wrap: wrap; align-items: center; justify-content: end; gap: 4px 12px; }
+  .filterToggle, .resetFilters { display: inline-flex; align-items: center; min-height: 44px; }
+  .filterToggle { gap: 8px; border: 0; }
+  .resetFilters { font-size: 12px; text-underline-offset: 3px; }
+  .desktopReset { display: none; }
   .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 14px; }
+  .dateRange { column-gap: 12px; }
   .filterPanel { display: grid; grid-template-rows: 0fr; opacity: 0; visibility: hidden; }
   .filterPanel[data-expanded="true"] { grid-template-rows: 1fr; opacity: 1; visibility: visible; }
   .filterPanel[data-expanded="false"] { interactivity: inert; pointer-events: none; }
@@ -117,4 +140,36 @@
     transition: grid-template-rows 150ms var(--ease-out), opacity 150ms var(--ease-out), visibility 0s 150ms;
   }
   .filterPanel[data-animate="true"][data-expanded="true"] { transition-delay: 0s; }
+}
+
+.activity {
+  display: grid;
+  gap: 30px;
+  margin-top: 36px;
+  max-width: 650px;
+}
+
+.activity h2 { margin-bottom: 14px; }
+.activity .timeTotal { font-size: 13px; white-space: nowrap; }
+
+.activityActions { display: flex; flex-wrap: wrap; gap: 10px; }
+.activityPrompt { margin-top: 16px; padding: 16px; background: var(--soft); border-radius: var(--radius-control); }
+.activityPrompt select { min-inline-size: 0; max-inline-size: 100%; --field: var(--paper); }
+
+.history { list-style: none; padding: 0; margin: 0; }
+.history li { padding: 14px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.history header { display: flex; flex-wrap: wrap; gap: 5px 14px; align-items: baseline; }
+.history header time { color: var(--muted); font-size: 12px; }
+.history p { margin: 8px 0 0; white-space: pre-wrap; }
+
+.activityEmpty { margin: 0; padding: 16px 0; color: var(--muted); }
+.activityForm { margin-top: 16px; }
+.activityForm button { justify-self: start; }
+.timeForm { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) auto; align-items: end; gap: 12px; }
+.timeForm label { display: grid; gap: 8px; min-inline-size: 0; font-size: 12px; font-weight: 600; }
+.timeForm input { display: block; min-inline-size: 0; max-inline-size: 100%; }
+.timeForm input[type="date"] { appearance: none; }
+
+@media (max-width: 760px) {
+  .timeForm { grid-template-columns: minmax(0, 1fr); }
 }

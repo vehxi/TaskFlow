@@ -78,4 +78,29 @@ public final class TaskRequests {
     public record Filters(@Positive Long projectId, TaskStatus status,
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dueFrom,
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dueTo, @Positive Long assigneeId) { }
+
+    /** Requests a status transition.
+     * @param targetStatus requested state
+     * @param expectedVersion version shown in the task card
+     * @param assigneeId optional replacement, accepted only when reopening */
+    public record ChangeStatus(@NotNull TaskStatus targetStatus, @NotNull @PositiveOrZero Long expectedVersion,
+            @Positive Long assigneeId) { }
+
+    /** Adds a comment from the current user.
+     * @param body comment text
+     * @param expectedTaskVersion version shown in the task card */
+    public record AddComment(@NotBlank @Size(max = 5000) String body, @NotNull @PositiveOrZero Long expectedTaskVersion) {
+        /** Normalizes surrounding whitespace before validation. */
+        public AddComment {
+            body = body == null ? null : body.strip();
+        }
+    }
+
+    /** Logs work by the current executor.
+     * @param workDate calendar day of the work
+     * @param minutes work duration in whole minutes
+     * @param expectedTaskVersion version shown in the task card */
+    public record AddTime(
+            @NotBlank @Pattern(regexp = "[0-9]{4}-[0-9]{2}-[0-9]{2}") String workDate,
+            @NotNull @Positive Integer minutes, @NotNull @PositiveOrZero Long expectedTaskVersion) { }
 }

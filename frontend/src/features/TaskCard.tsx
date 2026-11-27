@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { ApiError } from '../api/client.ts';
 import { getProject } from '../api/taskflow.ts';
 import { createTask, getReferenceData, getTask, getTaskAssignees, updateTask } from '../api/tasks.ts';
@@ -9,11 +9,14 @@ import { errorMessage, useSession } from '../app/session.tsx';
 import { Notice } from '../app/ui.tsx';
 import styles from '../app/App.module.css';
 import taskStyles from './Tasks.module.css';
-import { displayDueDate, isOpenTask, taskStatusNames } from './taskDisplay.ts';
+import { displayDueDate, isOpenTask } from './taskDisplay.ts';
 import { useTaskResource } from './useTaskResource.ts';
+import { TaskActivity } from './TaskActivity.tsx';
 
 export function TaskCard({ editing = false }: { editing?: boolean }) {
   const { id = '' } = useParams();
+  const { state } = useLocation();
+  const listSearch = typeof state?.listSearch === 'string' ? state.listSearch : '';
   const { user } = useSession();
   const load = useCallback((signal: AbortSignal) => getTask(id, signal), [id]);
   const resource = useTaskResource(load);
@@ -22,7 +25,9 @@ export function TaskCard({ editing = false }: { editing?: boolean }) {
     && task && isOpenTask(task.status);
 
   return <section className={styles.editor}>
-    <Link className={styles.backLink} to={editing ? `/tasks/${id}` : '/tasks'}>
+    <Link className={styles.backLink}
+      to={editing ? `/tasks/${id}` : { pathname: '/tasks', search: listSearch }}
+      state={editing ? { listSearch } : undefined}>
       {editing ? '← К задаче' : '← Задачи'}
     </Link>
     {resource.error ? <><Notice>{resource.error}</Notice><button onClick={resource.retry}>Повторить загрузку</button></>
@@ -30,27 +35,40 @@ export function TaskCard({ editing = false }: { editing?: boolean }) {
       : editing ? canEdit ? <>
         <h1>Редактирование задачи</h1>
         <TaskEditor key={task.id} projectId={task.projectId} projectName={task.projectName} task={task}
-          cancelTo={`/tasks/${task.id}`} reload={resource.retry} />
+          cancelTo={`/tasks/${task.id}`} listSearch={listSearch} reload={resource.retry} />
       </> : <h1>Редактирование недоступно</h1>
-      : <>
-        <div className={taskStyles.heading}>
-          <div>
-            <p className={styles.eyebrow}>{task.projectName}</p>
-            <h1>{task.title}</h1>
-            <span className={styles.role}>{taskStatusNames[task.status]}</span>
-          </div>
-          {canEdit && <Link className={styles.secondary} to={`/tasks/${task.id}/edit`}>Изменить задачу</Link>}
-        </div>
-        {task.description && <p className={taskStyles.description}>{task.description}</p>}
-        <dl className={styles.account}>
-          <div><dt>Исполнитель</dt><dd>{task.assigneeName}</dd></div>
+      : <TaskDetails key={`${task.id}:${task.version}`} initial={task} listSearch={listSearch} reload={resource.retry} />}
+  </section>;
+}
+
+function TaskDetails({ initial, listSearch, reload }: { initial: TaskDetail; listSearch: string; reload: () => void }) {
+  const { user } = useSession();
+  const [task, setTask] = useState(initial);
+  const isManager = task.managerId === user?.id && user.roles.includes('MANAGER');
+  const isExecutor = task.assigneeId === user?.id && user.roles.includes('EXECUTOR');
+
+  return <>
+    <div className={taskStyles.heading}>
+      <p className={styles.eyebrow}>{task.projectName}</p>
+      <h1>{task.title}</h1>
+    </div>
+    <TaskActivity task={task} isManager={isManager} isExecutor={isExecutor} onChange={setTask} reload={reload}>
+      <div className={taskStyles.summary}>
+        <dl className={taskStyles.assignment}>
           <div><dt>Срок</dt><dd><time dateTime={task.dueDate}>{displayDueDate(task.dueDate)}</time></dd></div>
+          <div><dt>Исполнитель</dt><dd>{task.assigneeName}</dd></div>
+        </dl>
+        {isManager && isOpenTask(task.status) && <Link className={styles.secondary}
+          to={`/tasks/${task.id}/edit`} state={{ listSearch }}>Изменить задачу</Link>}
+      </div>
+      {task.description && <p className={taskStyles.description}>{task.description}</p>}
+      <dl className={styles.account}>
           <div><dt>Тип</dt><dd>{task.typeName}</dd></div>
           <div><dt>Приоритет</dt><dd>{task.priorityName}</dd></div>
           <div><dt>Автор</dt><dd>{task.authorName}</dd></div>
-        </dl>
-      </>}
-  </section>;
+      </dl>
+    </TaskActivity>
+  </>;
 }
 
 export function NewTask() {
@@ -71,8 +89,8 @@ export function NewTask() {
   </section>;
 }
 
-function TaskEditor({ projectId, projectName, task, cancelTo, reload }: {
-  projectId: number; projectName: string; task?: TaskDetail; cancelTo: string; reload?: () => void;
+function TaskEditor({ projectId, projectName, task, cancelTo, listSearch, reload }: {
+  projectId: number; projectName: string; task?: TaskDetail; cancelTo: string; listSearch?: string; reload?: () => void;
 }) {
   const navigate = useNavigate();
   const load = useCallback((signal: AbortSignal) => Promise.all([
@@ -100,7 +118,7 @@ function TaskEditor({ projectId, projectName, task, cancelTo, reload }: {
     setFieldErrors({});
     try {
       const result = task ? await updateTask(task.id, fields, task.version) : await createTask(projectId, fields);
-      navigate(`/tasks/${result.data.id}`, { replace: true });
+      navigate(`/tasks/${result.data.id}`, { replace: true, state: { listSearch } });
     } catch (failure) {
       setError(errorMessage(failure));
       if (failure instanceof ApiError) {
@@ -180,7 +198,7 @@ function TaskEditor({ projectId, projectName, task, cancelTo, reload }: {
           </div>
         </div>
         <div className={styles.formActions}>
-          <Link className={styles.secondary} to={cancelTo}>Отмена</Link>
+          <Link className={styles.secondary} to={cancelTo} state={{ listSearch }}>Отмена</Link>
           <button className={styles.primary} disabled={stale || !canSave}>
             {busy ? 'Сохраняем…' : task ? 'Сохранить задачу' : 'Создать задачу'}
           </button>

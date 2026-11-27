@@ -405,6 +405,121 @@ class SecurityIntegrationTests {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM tasks", Long.class)).isEqualTo(1L);
     }
 
+    @Test
+    void taskHistorySurvivesReassignmentAndClosedTasksRemainReadable() throws Exception {
+        long owner = createUser("owner@example.test", "MANAGER");
+        long first = createUser("first@example.test", "EXECUTOR");
+        long second = createUser("second@example.test", "EXECUTOR");
+        var manager = login("owner@example.test");
+        var executor = login("first@example.test");
+        var replacement = login("second@example.test");
+        String project = createProject(manager, owner, "Task activity");
+        addMember(manager, project, first, 0).andExpect(status().isOk());
+        addMember(manager, project, second, 1).andExpect(status().isOk());
+        long type = referenceId("task_types", "Задача");
+        long priority = referenceId("task_priorities", "Обычный");
+        String task = postJson(manager, project + "/tasks", taskCommand(first, "2026-12-09", type, priority))
+                .andExpect(status().isCreated()).andReturn().getResponse().getHeader("Location");
+
+        postJson(executor, task + "/status", statusCommand("CANCELLED", 0)).andExpect(status().isForbidden());
+        postJson(executor, task + "/status", statusCommand("DONE", 0)).andExpect(status().isConflict());
+        postJson(executor, task + "/status", withAssignee(statusCommand("NEW", 0), second))
+                .andExpect(status().isBadRequest());
+        postJson(executor, task + "/status", statusCommand("NEW", 0))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.version").value(0));
+        postJson(executor, task + "/status", statusCommand("IN_PROGRESS", 0))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.version").value(1));
+
+        String comment = postJson(executor, task + "/comments", """
+                {"body":"  Original note  ","expectedTaskVersion":1}
+                """).andExpect(status().isCreated()).andExpect(jsonPath("$.data.comment.authorId").value(first))
+                .andExpect(jsonPath("$.data.comment.body").value("Original note"))
+                .andExpect(jsonPath("$.data.taskVersion").value(2)).andReturn().getResponse().getHeader("Location");
+        postJson(executor, task + "/time-entries", timeCommand("2099-01-01", "30", 2)).andExpect(status().isBadRequest());
+        postJson(executor, task + "/time-entries", timeCommand("2026-01-04", "2.5", 2)).andExpect(status().isBadRequest());
+        postJson(executor, task + "/time-entries", timeCommand("2026-01-04", "0", 2)).andExpect(status().isBadRequest());
+        postJson(manager, task + "/time-entries", timeCommand("2026-01-04", "30", 2)).andExpect(status().isForbidden());
+        String entry = postJson(executor, task + "/time-entries", timeCommand("2026-01-04", "30", 2))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.data.timeEntry.authorId").value(first))
+                .andExpect(jsonPath("$.data.taskVersion").value(3)).andReturn().getResponse().getHeader("Location");
+        postJson(executor, task + "/status", statusCommand("DONE", 2))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("STALE_VERSION"));
+
+        mvc.perform(put(task).session(manager).with(csrf()).contentType("application/json")
+                        .content(withVersion(taskCommand(second, "2026-12-09", type, priority), 3)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("IN_PROGRESS"))
+                .andExpect(jsonPath("$.data.version").value(4));
+        mvc.perform(get(comment).session(executor)).andExpect(status().isNotFound());
+        mvc.perform(get(comment).session(replacement)).andExpect(status().isOk()).andExpect(jsonPath("$.authorId").value(first));
+        mvc.perform(get(entry).session(replacement)).andExpect(status().isOk()).andExpect(jsonPath("$.authorId").value(first));
+        postJson(replacement, task + "/time-entries", timeCommand("2026-01-05", "45", 4))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.data.timeEntry.authorId").value(second))
+                .andExpect(jsonPath("$.data.taskVersion").value(5));
+        postJson(replacement, task + "/status", statusCommand("DONE", 5)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("DONE")).andExpect(jsonPath("$.data.version").value(6));
+        postJson(replacement, task + "/comments", """
+                {"body":"Closed task comment","expectedTaskVersion":6}
+                """).andExpect(status().isConflict());
+        postJson(replacement, task + "/time-entries", timeCommand("2026-01-05", "10", 6))
+                .andExpect(status().isConflict());
+        mvc.perform(get(task + "/time-entries").param("size", "1").session(manager)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(2)).andExpect(jsonPath("$.totalMinutes").value(75))
+                .andExpect(jsonPath("$.items[0].authorId").value(first));
+        mvc.perform(get(task + "/comments").session(manager)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1));
+    }
+
+    @Test
+    void reopeningCanRepairTheAssignmentAndDoesNotModifyHistory() throws Exception {
+        long owner = createUser("owner@example.test", "MANAGER");
+        long first = createUser("first@example.test", "EXECUTOR");
+        long second = createUser("second@example.test", "EXECUTOR");
+        var manager = login("owner@example.test");
+        var executor = login("first@example.test");
+        String project = createProject(manager, owner, "Reopen assignments");
+        addMember(manager, project, first, 0).andExpect(status().isOk());
+        addMember(manager, project, second, 1).andExpect(status().isOk());
+        long type = referenceId("task_types", "Задача");
+        long priority = referenceId("task_priorities", "Обычный");
+        String task = postJson(manager, project + "/tasks", taskCommand(first, "2026-12-09", type, priority))
+                .andExpect(status().isCreated()).andReturn().getResponse().getHeader("Location");
+        String comment = postJson(manager, task + "/comments", """
+                {"body":"Manager note","expectedTaskVersion":0}
+                """).andExpect(status().isCreated()).andReturn().getResponse().getHeader("Location");
+        postJson(manager, task + "/status", statusCommand("CANCELLED", 1)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("CANCELLED"));
+        postJson(executor, task + "/status", statusCommand("NEW", 2)).andExpect(status().isForbidden());
+        jdbc.update("UPDATE users SET active = false WHERE id = ?", first);
+        postJson(manager, task + "/status", statusCommand("NEW", 2)).andExpect(status().isConflict());
+        postJson(manager, task + "/status", withAssignee(statusCommand("NEW", 2), second))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.assigneeId").value(second))
+                .andExpect(jsonPath("$.data.status").value("NEW")).andExpect(jsonPath("$.data.version").value(3));
+        var replacement = login("second@example.test");
+        mvc.perform(get(comment).session(replacement)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.authorId").value(owner));
+        postJson(replacement, task + "/status", statusCommand("IN_PROGRESS", 3)).andExpect(status().isOk());
+        postJson(replacement, task + "/status", statusCommand("DONE", 4)).andExpect(status().isOk());
+        mvc.perform(get(task + "/time-entries").session(manager)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalMinutes").value(0));
+    }
+
+    private org.springframework.test.web.servlet.ResultActions postJson(MockHttpSession session, String path, String body)
+            throws Exception {
+        return mvc.perform(post(path).session(session).with(csrf()).contentType("application/json").content(body));
+    }
+
+    private static String statusCommand(String target, long version) {
+        return "{\"targetStatus\":\"" + target + "\",\"expectedVersion\":" + version + "}";
+    }
+
+    private static String withAssignee(String command, long assignee) {
+        return command.substring(0, command.length() - 1) + ",\"assigneeId\":" + assignee + "}";
+    }
+
+    private static String timeCommand(String date, String minutes, long version) {
+        return "{\"workDate\":\"" + date + "\",\"minutes\":" + minutes + ",\"expectedTaskVersion\":" + version + "}";
+    }
+
     private long referenceId(String table, String name) {
         return jdbc.queryForObject("SELECT id FROM " + table + " WHERE name = ?", Long.class, name);
     }

@@ -28,8 +28,9 @@ GET /api/csrf доступен до входа, возвращает token и he
 | GET /api/reference-data | Любой вошедший | Типы и приоритеты с id, name, active, version; позволяет отобразить прежнее неактивное значение. |
 | GET /api/projects | Руководитель: свои; исполнитель: участие | Страница ProjectSummaryDto: id, name, description, managerId, version; без чужих задач и сводных показателей. |
 | GET /api/projects/{id} | Руководитель своего проекта / участник | ProjectSummaryDto с теми же ограничениями. |
-| GET /api/projects/{id}/members | Руководитель своего проекта | Страница участников с id пользователя и name. Поле projectVersion соответствует тому же снимку данных, что и состав. |
-| GET /api/tasks | Руководитель / исполнитель | Страница TaskSummaryDto: id, projectId, title, dueDate, status, assigneeId, version. |
+| GET /api/projects/{id}/members | Руководитель своего проекта | Страница участников с id пользователя и name. Поле projectVersion соответствует тому же снимку данных, что и состав. При assignableOnly=true возвращает только активных исполнителей. |
+| GET /api/tasks | Руководитель / исполнитель | Страница TaskSummaryDto: id, projectId, projectName, title, dueDate, status, assigneeId, assigneeName, version. Порядок по сроку, затем по id. |
+| GET /api/tasks/filter-options | Руководитель / исполнитель | Проекты доступных задач и, для руководителя, исполнители задач его проектов. Варианты содержат только id и name. |
 | GET /api/tasks/{id} | Руководитель проекта / текущий исполнитель | TaskDetailDto: данные задачи, доступные имена ссылочных объектов, version; passwordHash и административные данные отсутствуют. |
 | GET /api/tasks/{id}/comments | Те же права, что у карточки | Страница CommentDto: id, authorId, authorName, body, createdAt; порядок createdAt, id. |
 | GET /api/tasks/{id}/comments/{commentId} | Те же права; комментарий относится к указанной задаче | CommentDto. |
